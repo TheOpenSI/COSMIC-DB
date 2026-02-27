@@ -1,5 +1,0 @@
-**/*.md*
-!LICENSE
-**/*.venv/
-**/node_modules/
-**/__pycache__

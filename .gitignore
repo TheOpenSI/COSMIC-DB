@@ -229,5 +229,49 @@ __marimo__/
 docker/secrets/
 docker/configs/
 
+<<<<<<< HEAD
 # Whitelists
 !examples/*.env*
+=======
+####################################################
+#                                                  #
+# Credit: Generated from running `bun create vite` #
+#                                                  #
+####################################################
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+
+########################################
+#                                      #
+# Credit: CoSMIC-speicfic ignore lists #
+#                                      #
+########################################
+docker/secret/
+docker/config/
+!todo/* # Temporary, migration done will be deleted
+>>>>>>> 1796628 (init: move old system in a dir within new structure)
