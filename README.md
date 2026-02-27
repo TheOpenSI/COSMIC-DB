@@ -54,6 +54,9 @@ Then, start by cloning the repository using your preferred method:
 > Things will **DEFINITELY BREAK, TEAR APART, BURN DOWN TO THE ULTERNESS OF VORTEX**. Please go ahead if none of those would bother you...
 >>>>>>> 1796628 (init: move old system in a dir within new structure)
 
+> [!NOTE]
+> `todo` directory is the setup that we used to run the CoSMIC project. I'm actively migrating it over this this new structure so unless you know what you need from that directory, safely ignore it.
+
 # Setup
 ## 1. Clone repository
 ```bash
