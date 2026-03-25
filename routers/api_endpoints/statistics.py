@@ -1,5 +1,9 @@
 ### Core modules ###
-from fastapi import APIRouter, HTTPException, status
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    status
+)
 from sqlmodel import select
 
 
@@ -32,6 +36,9 @@ statistics_v1_router: APIRouter = APIRouter(
         },
         404: {
             "description": "Not Found (Statistics API V1)"
+        },
+        500: {
+            "description": "Internal Server Error (Statistics API V1)"
         }
     }
 )
@@ -45,9 +52,19 @@ statistics_v1_router: APIRouter = APIRouter(
 async def read_statistics_v1(
     session: SessionDependency
 ) -> Any:
-    statisitics_view: Sequence[Statistics] = session.exec(statement=select(Statistics)).all()
+    try:
+        statisitics_view: Sequence[Statistics] = session.exec(statement=select(Statistics)).all()
 
-    return statisitics_view
+        return statisitics_view
+
+    except Exception as fastapi_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
+        )
 
 
 @statistics_v1_router.post(
@@ -60,14 +77,24 @@ async def create_statistic_v1(
     statistic: StatisticCreate,
     session: SessionDependency
 ) -> Any:
-    statistic_db: Statistics = Statistics.model_validate(obj=statistic, strict=True)
-    statistic_db.user_id = user_id
+    try:
+        statistic_db: Statistics = Statistics.model_validate(obj=statistic, strict=True)
+        statistic_db.user_id = user_id
 
-    session.add(instance=statistic_db)
-    session.commit()
-    session.refresh(instance=statistic_db)
+        session.add(instance=statistic_db)
+        session.commit()
+        session.refresh(instance=statistic_db)
 
-    return statistic_db
+        return statistic_db
+
+    except Exception as fastapi_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
+        )
 
 
 @statistics_v1_router.get(
@@ -79,15 +106,25 @@ async def read_statistic_v1(
     statistic_id: UUID,
     session: SessionDependency
 ) -> Any:
-    statistic_view: Statistics | None = session.get(entity=Statistics, ident=statistic_id)
+    try:
+        statistic_view: Statistics | None = session.get(entity=Statistics, ident=statistic_id)
 
-    if statistic_view is None:
+        if statistic_view is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Statistic Not Found!"
+            )
+        else:
+            return statistic_view
+
+    except Exception as fastapi_err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Statistic Not Found!"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
         )
-    else:
-        return statistic_view
 
 
 @statistics_v1_router.patch(
@@ -100,22 +137,32 @@ async def update_statistic_v1(
     statistic: StatisticUpdate,
     session: SessionDependency
 ) -> Any:
-    statistic_db: Statistics | None = session.get(entity=Statistics, ident=statistic_id)
+    try:
+        statistic_db: Statistics | None = session.get(entity=Statistics, ident=statistic_id)
 
-    if statistic_db is None:
+        if statistic_db is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Statistic Not Found!"
+            )
+        else:
+            statistic_data: dict[str, Any] = statistic.model_dump(exclude_unset=True)
+            statistic_db.sqlmodel_update(obj=statistic_data)
+
+            session.add(instance=statistic_db)
+            session.commit()
+            session.refresh(instance=statistic_db)
+
+            return statistic_db
+
+    except Exception as fastapi_err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Statistic Not Found!"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
         )
-    else:
-        statistic_data: dict[str, Any] = statistic.model_dump(exclude_unset=True)
-        statistic_db.sqlmodel_update(obj=statistic_data)
-
-        session.add(instance=statistic_db)
-        session.commit()
-        session.refresh(instance=statistic_db)
-
-        return statistic_db
 
 
 @statistics_v1_router.delete(
@@ -127,15 +174,25 @@ async def delete_statistic_v1(
     statistic_id: UUID,
     session: SessionDependency
 ) -> Any:
-    statistic_gone: Statistics | None = session.get(entity=Statistics, ident=statistic_id)
+    try:
+        statistic_gone: Statistics | None = session.get(entity=Statistics, ident=statistic_id)
 
-    if statistic_gone is None:
+        if statistic_gone is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Statistic Not Found!"
+            )
+        else:
+            session.delete(instance=statistic_gone)
+            session.commit()
+
+            return statistic_gone
+
+    except Exception as fastapi_err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Statistic Not Found!"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
         )
-    else:
-        session.delete(instance=statistic_gone)
-        session.commit()
-
-        return statistic_gone
