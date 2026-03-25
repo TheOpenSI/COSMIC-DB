@@ -49,27 +49,25 @@ Before setting up, ensure you've the appropriate tools installed depending on yo
 Then, start by cloning the repository using your preferred method:
 
 ```bash
-# Using HTTPS (recommended for most users)
-git clone https://github.com/TheOpenSI/COSMIC_DB.git CoSMIC_DB/ # Linux/MacOS
-
-# Using SSH (recommended if you've SSH keys configured)
-git clone git@github.com:TheOpenSI/COSMIC_DB.git CoSMIC_DB/     # Linux/MacOS
+# Linux/MacOS
+git clone https://github.com/TheOpenSI/COSMIC_DB.git    # Using HTTPS (recommended for most users)
+git clone git@github.com:TheOpenSI/COSMIC_DB.git        # Using SSH (recommended if you've SSH keys configured)
 ```
 ```ps1
-# Using HTTPS (recommended for most users)
-git clone https://github.com/TheOpenSI/COSMIC_DB.git CoSMIC_DB/ # Windows
-
-# Using SSH (recommended if you've SSH keys configured)
-git clone git@github.com:TheOpenSI/COSMIC_DB.git CoSMIC_DB/     # Windows
+# Windows
+git clone https://github.com/TheOpenSI/COSMIC_DB.git    # Using HTTPS (recommended for most users)
+git clone git@github.com:TheOpenSI/COSMIC_DB.git        # Using SSH (recommended if you've SSH keys configured)
 ```
 
 Once cloned, navigate to the project root directory:
 
 ```bash
-cd CoSMIC_DB/ # Linux/MacOS
+# Linux/MacOS
+cd CoSMIC_DB/
 ```
 ```ps1
-Set-Location CoSMIC_DB\ # Windows
+# Windows
+Set-Location CoSMIC_DB\
 ```
 
 # Understanding Configuration Setup
@@ -88,19 +86,23 @@ If you're planning to use Docker, configuration files are organised in the follo
 Create the necessary directories first:
 
 ```bash
+# Linux/MacOS
 mkdir -p docker/{secrets,configs}
+```
+```ps1
+# Windows
+New-Item -Type Directory -Name secrets -Path .\docker\
+New-Item -Type Directory -Name configs -Path .\docker\
 ```
 
 Then, copy the following files from the `examples/` directory to their respective backend directories:
 
 > [!IMPORTANT]
-> Remember to remove these from each filenames:
-> - "`{fastapi,postgres,pgadmin}_`" leading name
-> - "`.example`" suffix
+> Remember to remove `.example` suffix from each filenames.
 
-1. **Backend service**: (`cosmic_*.example.env`) ==> (`cores/`)
-2. **PostgreSQL service**: (`postgres_*.example.txt`) ==> (`docker/secrets/`)
-3. **pgAdmin service**: (`pgadmin_*.example.txt` & `pgadmin_*.example.json`) ==> (`docker/secrets/` & `docker/configs/` respectively)
+1. **Backend service**: (`cosmic_*.example.env`) &rarr; (`cores/cosmic_*.env`)
+2. **PostgreSQL service**: (`postgres_*.example.txt`) &rarr; (`docker/secrets/postgres_*.txt`)
+3. **pgAdmin service**: (`pgadmin_*.example.txt` & `pgadmin_*.example.json`) &rarr; (`docker/secrets/pgadmin_*.txt` & `docker/configs/pgadmin_*.json` respectively)
 
 > [!TIP]
 > Before finalising these files, review and adjust default values such as
@@ -122,10 +124,12 @@ If you're planning to go with native setup, configuration is handled through env
 First, copy the `examples/cosmic_*.example.env` file and customise it:
 
 ```bash
-cp ../examples/cosmic_*.example.env ./cores/cosmic_*.env # Linux/MacOS
+ # Linux/MacOS
+cp ../examples/cosmic_*.example.env ./cores/cosmic_*.env
 ```
 ```ps1
-Copy-Item -Path ..\examples\cosmic_*.example.env -Destination .\cores\cosmic_*.env # Windows
+# Windows
+Copy-Item -Path ..\examples\cosmic_*.example.env -Destination .\cores\cosmic_*.env
 ```
 
 Then, edit the `cores/cosmic_*.env` file to set your desired configuration values.
@@ -173,14 +177,16 @@ Before you begin, ensure you have **Docker** & **Docker Compose** installed on y
 
 ### **1. Starting Docker Services**
 
-From the project root directory (`CoSMIC_DB/`), ensure you've completed the steps in the [Docker Configuration](#docker-configuration) section above. Then start all the service using `compose.yaml` Docker Compose file:
+From the project root directory, ensure you've completed the steps in the [Docker Configuration](#docker-configuration) section above. Then start all the service using the Docker Compose file:
 
 ```bash
-# Add `sudo` if necessary
-docker compose up --build -d # Linux/MacOS
+
+# Linux/MacOS
+docker compose up --build -d # Add `sudo` if necessary
 ```
 ```ps1
-docker compose up --build -d # Windows
+# Windows
+docker compose up --build -d # Docker run through lightweight Linux VM on Windows so it's rootless by default
 ```
 
 ### **2. Verifying Docker Services**
@@ -188,16 +194,17 @@ docker compose up --build -d # Windows
 Once the containers are running, you can verify that all services are working correctly by these way:
 
 1. **FastAPI**: [localhost:3000/docs](http://localhost:3000/docs)
-2. **pgAdmin**: [localhost:5050](http://localhost:5050) (use credentials from `docker/secrets/pgadmin_*.txt` file to login)
+2. **pgAdmin**: [localhost:5050](http://localhost:5050) **(use credentials from `docker/secrets/pgadmin_*.txt`, and `PGADMIN_DEFAULT_EMAIL` environment value in compose file)**
 3. **PostgreSQL**:
 - We disabled direct access by default as this's totally viewable from **pgAdmin**. However, you can still do it by typing this in your terminal:
 
 ```bash
-# Add `sudo` if necessary
-docker exec cosmic-infrastructure-postgres psql -U demo # Linux/MacOS
+# Linux/MacOS
+docker exec cosmic-infrastructure-postgres psql -U demo # Add `sudo` if necessary
 ```
 ```ps1
-docker exec cosmic-infrastructure-postgres psql -U demo # Windows
+# Windows
+docker exec cosmic-infrastructure-postgres psql -U demo # Docker run through lightweight Linux VM on Windows so it's rootless by default
 ```
 
 or go to **Docker Desktop**, search for `cosmic-infrastructure-postgres` service under `opensi-cosmic-infrastructure` top-level service, click on it then click on **Terminal** icon on the near top right corner.
@@ -235,10 +242,12 @@ psql --version
 Our backend uses **Python (v3.14+)** with the `uv` package manager for dependency management. Once **PostgreSQL (v18+)** is running and you're in the project root directory (`CoSMIC_DB/`), install the project's Python dependencies:
 
 ```bash
-uv sync --frozen --no-cache # Linux/MacOS
+# Linux/MacOS
+uv sync --frozen --no-cache
 ```
 ```ps1
-uv sync --frozen --no-cache # Windows
+# Windows
+uv sync --frozen --no-cache
 ```
 
 ### **2. Starting Backend Server**
@@ -246,10 +255,12 @@ uv sync --frozen --no-cache # Windows
 After dependencies are installed, ensure you've completed the steps from the [Native Configuration](#native-configuration) section above. Then, start the FastAPI development server:
 
 ```bash
-uv run fastapi dev # Linux/MacOS
+# Linux/MacOS
+uv run fastapi dev
 ```
 ```ps1
-uv run fastapi dev # Windows
+# Windows
+uv run fastapi dev
 ```
 
 ### **3. Verifying Native Setup**
