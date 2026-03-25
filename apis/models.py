@@ -84,6 +84,14 @@ class ServiceBase(SQLModel):
         nullable=True,
         sa_type=Text
     )
+    status: bool = Field(
+        default=False,
+        sa_column_kwargs={
+            "server_default": text(text="FALSE"),
+            # Gotta explains the usecase of this column a bit
+            "comment": "mainly for the multi-services usage scenario."
+        }
+    )
 
 
 class ModelBase(SQLModel):
@@ -262,14 +270,6 @@ class UserChatSession(SQLModel, table=True):
     service_id: UUID | None = Field(
         default=None,
         nullable=False
-    )
-    status: bool = Field(
-        default=False,
-        sa_column_kwargs={
-            "server_default": text(text="FALSE"),
-            # Gotta explains the usecase of this column a bit
-            "comment": "mainly for the multi-services usage scenario."
-        }
     )
     create_on: datetime | None = Field(
         default=None,
