@@ -129,6 +129,20 @@ class StatisticBase(SQLModel):
     )
 
 
+class ConfigurationBase(SQLModel):
+    details: dict[str, "JsonValue"] = Field(
+        default={
+            # Configuration page format (show only on non-PATCH request due to
+            # its overwrite features)
+            # TODO: leave empty for this coming commit. I need to ask Carlos on
+            # this a bit as well taking some more time to consider how to do this
+            # table correctly.
+        },
+        nullable=False,
+        sa_type=JSONB
+    )
+
+
 
 ################################################
 ###   Table Link Models (Junction Tables)    ###
@@ -504,6 +518,24 @@ class Statistics(StatisticBase, table=True):
             "single_parent": True
         },
         cascade_delete=True
+    )
+
+
+class Configurations(ConfigurationBase, table=True):
+    __tablename__: str = "configurations" # type: ignore
+    __table_args__: tuple[
+        PrimaryKeyConstraint
+    ] = (
+        PrimaryKeyConstraint(
+            "id",
+            name="PK_CONFIGURATION_ID"
+        ),
+    )
+    id: UUID = Field(
+        default_factory=(lambda: uuid7()),
+        primary_key=True,
+        nullable=False,
+        sa_type=Uuid
     )
 
 
