@@ -50,13 +50,13 @@ Then, start by cloning the repository using your preferred method:
 
 ```bash
 # Linux/MacOS
-git clone https://github.com/TheOpenSI/COSMIC_DB.git    # Using HTTPS (recommended for most users)
-git clone git@github.com:TheOpenSI/COSMIC_DB.git        # Using SSH (recommended if you've SSH keys configured)
+git clone https://github.com/TheOpenSI/COSMIC-DB.git    # Using HTTPS (recommended for most users)
+git clone git@github.com:TheOpenSI/COSMIC-DB.git        # Using SSH (recommended if you've SSH keys configured)
 ```
 ```ps1
 # Windows
-git clone https://github.com/TheOpenSI/COSMIC_DB.git    # Using HTTPS (recommended for most users)
-git clone git@github.com:TheOpenSI/COSMIC_DB.git        # Using SSH (recommended if you've SSH keys configured)
+git clone https://github.com/TheOpenSI/COSMIC-DB.git    # Using HTTPS (recommended for most users)
+git clone git@github.com:TheOpenSI/COSMIC-DB.git        # Using SSH (recommended if you've SSH keys configured)
 ```
 
 Once cloned, navigate to the project root directory:
@@ -76,13 +76,6 @@ Our backend expects configuration files to be organised in specific locations de
 
 ## Docker Configuration
 
-If you're planning to use Docker, configuration files are organised in the following locations:
-
-1. `docker/secrets/postgres_*.txt`: Contains PostgreSQL database credentials and configuration files.
-2. `docker/secrets/pgadmin_*.txt`: Contains pgAdmin credentials and authentication files.
-3. `docker/configs/pgadmin_*.json`: Contains pgAdmin server definitions and non-sensitive configuration.
-4. `cores/cosmic_*.env`: Contains core application environment variables (at project root).
-
 Create the necessary directories first:
 
 ```bash
@@ -95,20 +88,28 @@ New-Item -Type Directory -Name secrets -Path .\docker\
 New-Item -Type Directory -Name configs -Path .\docker\
 ```
 
-Then, copy the following files from the `examples/` directory to their respective backend directories:
+Then, copy the following files from the `examples/` directory to the following location:
 
 > [!IMPORTANT]
 > Remember to remove `.example` suffix from each filenames.
 
-1. **Backend service**: (`cosmic_*.example.env`) &rarr; (`cores/cosmic_*.env`)
-2. **PostgreSQL service**: (`postgres_*.example.txt`) &rarr; (`docker/secrets/postgres_*.txt`)
-3. **pgAdmin service**: (`pgadmin_*.example.txt` & `pgadmin_*.example.json`) &rarr; (`docker/secrets/pgadmin_*.txt` & `docker/configs/pgadmin_*.json` respectively)
+1. **Backend service**:
+- `examples/cosmic_*.example.env` &rarr; `cores/cosmic_*.env` (contains core application environment variables).
+
+2. **PostgreSQL service**:
+- `examples/postgres_*.example.txt` &rarr; `docker/secrets/postgres_*.txt` (contains PostgreSQL database credentials and configuration files).
+
+3. **pgAdmin service**:
+- `examples/pgadmin_*.example.txt` &rarr; `docker/secrets/pgadmin_*.txt` (contains pgAdmin credentials and authentication files).
+- `examples/pgadmin_*.example.json` &rarr; `docker/configs/pgadmin_*.json` (contains pgAdmin server definitions and non-sensitive configuration).
 
 > [!TIP]
-> Before finalising these files, review and adjust default values such as
-> passwords, database usernames, and service ports. If you're unsure about any
-> settings, the default values work fine for local development, so you can skip
-> customisation for now and proceed with the defaults.
+> Before finalising these files, review and adjust default values:
+> - Password
+> - Ssername
+> - Port
+> - Etc
+> Keep default setting if you're unsure about whether or not to modify it.
 
 ## Native Configuration
 
@@ -117,11 +118,9 @@ Then, copy the following files from the `examples/` directory to their respectiv
 > organised and prevents accidentally committing secrets to version control.
 > Make sure to add `.env` to your `.gitignore` file.
 
-If you're planning to go with native setup, configuration is handled through environment variables. You've two options:
-
 ### **Option 1: Create a `.env` file in the `cores/` directory**
 
-First, copy the `examples/cosmic_*.example.env` file and customise it:
+First, copy the `examples/cosmic_*.example.env` file to the correct location:
 
 ```bash
  # Linux/MacOS
@@ -170,6 +169,12 @@ $env:DB_NAME="postgres"
 
 ## Docker Setup
 
+> [!NOTE]
+> It's possible to run Docker in rootless mode on Linux. However, the way to set
+> it up is different on each Linux distros. Please refer to [this](https://docs.docker.com/engine/install) and [this](https://docs.docker.com/engine/security/rootless/)
+> (all sourced from Docker documentation) to choose the one that fits for your
+> current Linux distro.
+
 Before you begin, ensure you have **Docker** & **Docker Compose** installed on your system. These are required to run the platform:
 
 1. [**Docker**](https://docs.docker.com/get-docker/)
@@ -180,9 +185,8 @@ Before you begin, ensure you have **Docker** & **Docker Compose** installed on y
 From the project root directory, ensure you've completed the steps in the [Docker Configuration](#docker-configuration) section above. Then start all the service using the Docker Compose file:
 
 ```bash
-
 # Linux/MacOS
-docker compose up --build -d # Add `sudo` if necessary
+sudo docker compose up --build -d # Refer to NOTE if running on rootless mode
 ```
 ```ps1
 # Windows
@@ -200,7 +204,7 @@ Once the containers are running, you can verify that all services are working co
 
 ```bash
 # Linux/MacOS
-docker exec cosmic-infrastructure-postgres psql -U demo # Add `sudo` if necessary
+sudo docker exec cosmic-infrastructure-postgres psql -U demo # Refer to NOTE if running on rootless mode
 ```
 ```ps1
 # Windows
