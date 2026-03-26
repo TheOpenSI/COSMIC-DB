@@ -17,6 +17,8 @@ from ..routers.api_endpoints.services import services_v1_router
 from ..routers.api_endpoints.models import models_v1_router
 from ..routers.api_endpoints.statistics import statistics_v1_router
 
+from ..utils.pre_populate import populate_default_role
+
 
 # TODO: Need some more research on this usage rather than the deprecation
 # event: 'startup' & 'shutdown'
@@ -24,6 +26,9 @@ from ..routers.api_endpoints.statistics import statistics_v1_router
 async def lifespan(app: FastAPI):
     # Equivalent to 'startup' event
     create_db_and_table()
+
+    # Pre-populate some data into our database tables
+    populate_default_role()
 
     yield
 
