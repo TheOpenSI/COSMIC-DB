@@ -1,6 +1,7 @@
 ### Core modules ###
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 
 ### Type hints ###
@@ -8,8 +9,6 @@ from fastapi import FastAPI
 
 ### Internal modules ###
 from ..cores.db import create_db_and_table
-
-from ..routers.normal_endpoints.cosmic import cosmic_router
 
 from ..routers.api_endpoints.users import users_v1_router
 from ..routers.api_endpoints.roles import roles_v1_router
@@ -34,8 +33,25 @@ async def lifespan(app: FastAPI):
 cosmic_app: FastAPI = FastAPI(lifespan=lifespan)
 
 
+# NOTE: enable CORS on application level (only on dev)
+cosmic_app.add_middleware(
+    middleware_class=CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=[
+        "http://localhost:5173",    # FE binded Docker port
+        "http://localhost:8000",    # BE binded Docker port
+        "http://localhost:3000"     # CoSMIC binded Docker port
+    ],
+    allow_methods=[
+        "POST",
+        "PATCH"
+    ],
+    allow_headers=[],
+    max_age=600
+)
+
+
 # Normal endpoints
-cosmic_app.include_router(router=cosmic_router)
 
 
 # API endpoints (V1)

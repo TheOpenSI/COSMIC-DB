@@ -37,7 +37,7 @@ services:
       - name: cosmic-infrastructure-fastapi-uvicorn
         target: 8000
         host_ip: 127.0.0.1
-        published: "3000"
+        published: "8000"
         protocol: tcp
         app_protocol: http
         mode: host
