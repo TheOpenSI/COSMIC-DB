@@ -17,7 +17,10 @@ from ..routers.api_endpoints.services import services_v1_router
 from ..routers.api_endpoints.models import models_v1_router
 from ..routers.api_endpoints.statistics import statistics_v1_router
 
-from ..utils.pre_populate import populate_default_role
+from ..utils.pre_populate import (
+    populate_default_role,
+    populate_default_user
+)
 
 
 # TODO: Need some more research on this usage rather than the deprecation
@@ -29,6 +32,7 @@ async def lifespan(app: FastAPI):
 
     # Pre-populate some data into our database tables
     populate_default_role()
+    populate_default_user()
 
     yield
 
