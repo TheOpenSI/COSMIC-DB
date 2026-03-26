@@ -134,9 +134,54 @@ class ConfigurationBase(SQLModel):
         default={
             # Configuration page format (show only on non-PATCH request due to
             # its overwrite features)
-            # TODO: leave empty for this coming commit. I need to ask Carlos on
-            # this a bit as well taking some more time to consider how to do this
-            # table correctly.
+
+            # TODO: this isn't in the final form yet. I just got some
+            # information from Carlos regarding the creation as well as the
+            # purpose of this table.
+            "General Setting": {
+                "provider_name": "",
+                "model_name": "",
+                "model_quantized": False,
+                "model_seed": 10
+            },
+            "Query Analyser Setting": {
+                # If 'same as above' button toggled, then the config here is the
+                # same as the general
+                "provider_name": "",
+                "model_name": "",
+                "model_quantized": True,
+                "model_seed": 20
+            },
+            "Services Setting": [
+                {
+                    "service_name": "QA",
+                    "options": {}
+                },
+                {
+                    "service_name": "Chess",
+                    "options": {
+                        "executable_path": ""
+                    }
+                },
+                {
+                    "service_name": "RAG",
+                    "options": {
+                        "vector_database_path": "",
+                        "top_k": 5,
+                        "retrieve_score_threshold": 0.7
+                    }
+                },
+                {
+                    "service_name": "Code",
+                    "options": {
+                        "api_key": ""
+                    }
+                },
+                {
+                    "service_name": "AG",
+                    "options": {}
+                }
+            ]
         },
         nullable=False,
         sa_type=JSONB
