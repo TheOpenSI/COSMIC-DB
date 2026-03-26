@@ -1,5 +1,9 @@
 ### Core modules ###
-from fastapi import APIRouter, HTTPException, status
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    status
+)
 from sqlmodel import select
 
 
@@ -32,6 +36,9 @@ chatboxes_v1_router: APIRouter = APIRouter(
         },
         404: {
             "description": "Not Found (Chatboxes API V1)"
+        },
+        500: {
+            "description": "Internal Server Error (Chatboxes API V1)"
         }
     }
 )
@@ -45,9 +52,19 @@ chatboxes_v1_router: APIRouter = APIRouter(
 async def read_chatboxes_v1(
     session: SessionDependency
 ) -> Any:
-    chatboxes_view: Sequence[Chatboxes] = session.exec(statement=select(Chatboxes)).all()
+    try:
+        chatboxes_view: Sequence[Chatboxes] = session.exec(statement=select(Chatboxes)).all()
 
-    return chatboxes_view
+        return chatboxes_view
+
+    except Exception as fastapi_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
+        )
 
 
 @chatboxes_v1_router.post(
@@ -60,14 +77,24 @@ async def create_chatbox_v1(
     chatbox: ChatboxCreate,
     session: SessionDependency
 ) -> Any:
-    chatbox_db: Chatboxes = Chatboxes.model_validate(obj=chatbox, strict=True)
-    chatbox_db.user_id = user_id
+    try:
+        chatbox_db: Chatboxes = Chatboxes.model_validate(obj=chatbox, strict=True)
+        chatbox_db.user_id = user_id
 
-    session.add(instance=chatbox_db)
-    session.commit()
-    session.refresh(instance=chatbox_db)
+        session.add(instance=chatbox_db)
+        session.commit()
+        session.refresh(instance=chatbox_db)
 
-    return chatbox_db
+        return chatbox_db
+
+    except Exception as fastapi_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
+        )
 
 
 @chatboxes_v1_router.get(
@@ -79,15 +106,25 @@ async def read_chatbox_v1(
     chatbox_id: UUID,
     session: SessionDependency
 ) -> Any:
-    chatbox_view: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_id)
+    try:
+        chatbox_view: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_id)
 
-    if chatbox_view is None:
+        if chatbox_view is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chatbox Not Found!"
+            )
+        else:
+            return chatbox_view
+
+    except Exception as fastapi_err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chatbox Not Found!"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
         )
-    else:
-        return chatbox_view
 
 
 @chatboxes_v1_router.patch(
@@ -100,22 +137,32 @@ async def update_chatbox_v1(
     chatbox: ChatboxUpdate,
     session: SessionDependency
 ) -> Any:
-    chatbox_db: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_id)
+    try:
+        chatbox_db: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_id)
 
-    if chatbox_db is None:
+        if chatbox_db is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chatbox Not Found!"
+            )
+        else:
+            chatbox_data: dict[str, Any] = chatbox.model_dump(exclude_unset=True)
+            chatbox_db.sqlmodel_update(obj=chatbox_data)
+
+            session.add(instance=chatbox_db)
+            session.commit()
+            session.refresh(instance=chatbox_db)
+
+            return chatbox_db
+
+    except Exception as fastapi_err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chatbox Not Found!"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
         )
-    else:
-        chatbox_data: dict[str, Any] = chatbox.model_dump(exclude_unset=True)
-        chatbox_db.sqlmodel_update(obj=chatbox_data)
-
-        session.add(instance=chatbox_db)
-        session.commit()
-        session.refresh(instance=chatbox_db)
-
-        return chatbox_db
 
 
 @chatboxes_v1_router.delete(
@@ -127,15 +174,25 @@ async def delete_chatbox_v1(
     chatbox_id: UUID,
     session: SessionDependency
 ) -> Any:
-    chatbox_gone: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_id)
+    try:
+        chatbox_gone: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_id)
 
-    if chatbox_gone is None:
+        if chatbox_gone is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Chatbox Not Found!"
+            )
+        else:
+            session.delete(instance=chatbox_gone)
+            session.commit()
+
+            return chatbox_gone
+
+    except Exception as fastapi_err:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chatbox Not Found!"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": fastapi_err
+            }
         )
-    else:
-        session.delete(instance=chatbox_gone)
-        session.commit()
-
-        return chatbox_gone
