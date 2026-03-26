@@ -39,7 +39,8 @@ cosmic_app.add_middleware(
     allow_credentials=True,
     allow_origins=[
         "http://localhost:5173",    # FE binded Docker port
-        "http://localhost:8000"     # BE binded Docker port
+        "http://localhost:8000",    # BE binded Docker port
+        "http://localhost:3000"     # CoSMIC binded Docker port
     ],
     allow_methods=[
         "POST",
