@@ -18,6 +18,7 @@ from ..routers.api_endpoints.models import models_v1_router
 from ..routers.api_endpoints.statistics import statistics_v1_router
 
 from ..utils.pre_populate import (
+    populate_default_account,
     populate_default_role,
     populate_default_user
 )
@@ -33,6 +34,7 @@ async def lifespan(app: FastAPI):
     # Pre-populate some data into our database tables
     populate_default_role()
     populate_default_user()
+    populate_default_account()
 
     yield
 

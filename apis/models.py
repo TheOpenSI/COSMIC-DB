@@ -162,16 +162,18 @@ class UserRoleLink(SQLModel, table=True):
             match="FULL"
         ),
     )
-    user_id: UUID | None = Field(
-        default=None,
-        nullable=False
+    user_id: UUID = Field(
+        primary_key=True,
+        nullable=False,
+        sa_type=Uuid
     )
-    role_id: UUID | None = Field(
-        default=None,
-        nullable=False
+    role_id: UUID = Field(
+        primary_key=True,
+        nullable=False,
+        sa_type=Uuid
     )
     create_on: datetime | None = Field(
-        default=None,
+        default_factory=(lambda: datetime.now(tz=timezone.utc)),
         nullable=False,
         sa_type=TIMESTAMP(timezone=True) # type: ignore
     )

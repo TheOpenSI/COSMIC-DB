@@ -1,15 +1,23 @@
 ### Core modules ###
+from uuid import UUID
+from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
 
 ### Type hints ###
 from sqlmodel.sql.expression import SelectOfScalar
+from sqlalchemy.exc import (
+    IntegrityError,
+    MultipleResultsFound,
+    NoResultFound
+)
 
 
 ### Internal modules ###
 from ..cores.db import cosmic_db_engine
 from ..apis.models import (
     Roles,
+    UserRoleLink,
     Users
 )
 
@@ -75,3 +83,77 @@ def populate_default_user() -> None:
             pass
 
     return None
+
+
+# NOTE: only run this after populate data for `Roles` & `Users` table
+def populate_default_account() -> None:
+    with Session(bind=cosmic_db_engine) as session:
+        try:
+            exist_user_data: UUID = session.exec(
+                statement=select(
+                    Users.id
+                )
+            ).one()
+            exist_role_data: UUID = session.exec(
+                statement=select(
+                    Roles.id
+                ).where(Roles.name == "Admin")
+            ).one()
+
+            default_account_data: UserRoleLink = UserRoleLink(
+                user_id=exist_user_data,
+                role_id=exist_role_data
+            )
+
+            exist_default_account_data: UserRoleLink | None = session.exec(
+                statement=select(UserRoleLink)
+            ).first()
+
+            # TODO: should be reading from View table, not from join table directly
+            if exist_default_account_data is None:
+                # Add default account
+                session.add(instance=default_account_data)
+                session.commit()
+                session.refresh(instance=default_account_data)
+            else:
+                # Simply skip it
+                print("Initial account existed, skipping...")
+                pass
+
+        except MultipleResultsFound as sqlmodel_err:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "status": "Serivce Unavailable",
+                    "message": sqlmodel_err
+                }
+            )
+
+        except NoResultFound as sqlmodel_err:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "status": "Serivce Unavailable",
+                    "message": sqlmodel_err
+                }
+            )
+
+        except IntegrityError as sqlmodel_err:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "status": "Serivce Unavailable",
+                    "message": sqlmodel_err
+                }
+            )
+
+        except Exception as fastapi_err:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "status": "Internal Server Error",
+                    "message": fastapi_err
+                }
+            )
+
+        return None
