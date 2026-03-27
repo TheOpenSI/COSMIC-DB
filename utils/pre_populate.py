@@ -106,10 +106,20 @@ def populate_default_account() -> None:
             )
 
             exist_default_account_data: UserRoleLink | None = session.exec(
-                statement=select(UserRoleLink)
+                statement=select(
+                    UserRoleLink
+                ).where(
+                    UserRoleLink.user_id == exist_user_data,
+                    UserRoleLink.role_id == exist_role_data
+                )
             ).first()
 
-            # TODO: should be reading from View table, not from join table directly
+            # TODO:
+            # We should be reading from View table, not from join table
+            # directly. However, SQLModel doesn't have a syntax to support SQL
+            # View directly but it's wrapper (SQLAlchemy) does just recently.
+            # It's a bit complex to set it up in OOP way to create SQL View
+            # tables dynamcially so this'll be written in its own PR.
             if exist_default_account_data is None:
                 # Add default account
                 session.add(instance=default_account_data)
