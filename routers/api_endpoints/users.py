@@ -14,8 +14,8 @@ from typing_extensions import Any, Sequence
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
-from ...apis.models import (
-    Users,
+from ...apis.table_models.users import Users
+from ...apis.data_models.users import (
     UserCreate,
     UserPublic,
     UserUpdate,

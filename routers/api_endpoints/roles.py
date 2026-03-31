@@ -14,8 +14,8 @@ from typing_extensions import Any, Sequence
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
-from ...apis.models import (
-    Roles,
+from ...apis.table_models.roles import Roles
+from ...apis.data_models.roles import (
     RoleCreate,
     RolePublic,
     RoleUpdate,
