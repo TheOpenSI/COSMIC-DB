@@ -25,21 +25,7 @@ from ...apis.data_models.users import (
 
 users_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/users",
-    tags=["Users API (V1)"],
-    responses={
-        200: {
-            "description": "OK (Users API V1)"
-        },
-        201: {
-            "description": "Created (Users API V1)"
-        },
-        404: {
-            "description": "Not Found (Users API V1)"
-        },
-        500: {
-            "description": "Internal Server Error (Users API V1)"
-        }
-    }
+    tags=["Users API (V1)"]
 )
 
 
@@ -51,19 +37,9 @@ users_v1_router: APIRouter = APIRouter(
 async def read_users_v1(
     session: SessionDependency
 ) -> Any:
-    try:
-        users_view: Sequence[Users] = session.exec(statement=select(Users)).all()
+    users_view: Sequence[Users] = session.exec(statement=select(Users)).all()
 
-        return users_view
-
-    except Exception as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
-        )
+    return users_view
 
 
 @users_v1_router.post(
@@ -103,25 +79,15 @@ async def read_user_v1(
     user_id: UUID,
     session: SessionDependency
 ) -> Any:
-    try:
-        user_view: Users | None = session.get(entity=Users, ident=user_id)
+    user_view: Users | None = session.get(entity=Users, ident=user_id)
 
-        if user_view is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User Not Found!"
-            )
-        else:
-            return user_view
-
-    except Exception as fastapi_err:
+    if user_view is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User Not Found!"
         )
+    else:
+        return user_view
 
 
 @users_v1_router.patch(
@@ -134,32 +100,22 @@ async def update_user_v1(
     user: UserUpdate,
     session: SessionDependency
 ) -> Any:
-    try:
-        user_db: Users | None = session.get(entity=Users, ident=user_id)
+    user_db: Users | None = session.get(entity=Users, ident=user_id)
 
-        if user_db is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User Not Found!"
-            )
-        else:
-            user_data: dict[str, Any] = user.model_dump(exclude_unset=True)
-            user_db.sqlmodel_update(obj=user_data)
-
-            session.add(instance=user_db)
-            session.commit()
-            session.refresh(instance=user_db)
-
-            return user_db
-
-    except Exception as fastapi_err:
+    if user_db is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User Not Found!"
         )
+    else:
+        user_data: dict[str, Any] = user.model_dump(exclude_unset=True)
+        user_db.sqlmodel_update(obj=user_data)
+
+        session.add(instance=user_db)
+        session.commit()
+        session.refresh(instance=user_db)
+
+        return user_db
 
 
 @users_v1_router.delete(
@@ -171,25 +127,15 @@ async def delete_user_v1(
     user_id: UUID,
     session: SessionDependency
 ) -> Any:
-    try:
-        user_gone: Users | None = session.get(entity=Users, ident=user_id)
+    user_gone: Users | None = session.get(entity=Users, ident=user_id)
 
-        if user_gone is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User Not Found!"
-            )
-        else:
-            session.delete(instance=user_gone)
-            session.commit()
-
-            return user_gone
-
-    except Exception as fastapi_err:
+    if user_gone is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User Not Found!"
         )
+    else:
+        session.delete(instance=user_gone)
+        session.commit()
+
+        return user_gone

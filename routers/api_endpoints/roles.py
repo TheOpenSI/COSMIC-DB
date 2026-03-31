@@ -25,21 +25,7 @@ from ...apis.data_models.roles import (
 
 roles_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/roles",
-    tags=["Roles API (V1)"],
-    responses={
-        200: {
-            "description": "OK (Roles API V1)"
-        },
-        201: {
-            "description": "Created (Roles API V1)"
-        },
-        404: {
-            "description": "Not Found (Roles API V1)"
-        },
-        500: {
-            "description": "Internal Server Error (Roles API V1)"
-        }
-    }
+    tags=["Roles API (V1)"]
 )
 
 
@@ -51,19 +37,9 @@ roles_v1_router: APIRouter = APIRouter(
 async def read_roles_v1(
     session: SessionDependency
 ) -> Any:
-    try:
-        roles_view: Sequence[Roles] = session.exec(statement=select(Roles)).all()
+    roles_view: Sequence[Roles] = session.exec(statement=select(Roles)).all()
 
-        return roles_view
-
-    except Exception as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
-        )
+    return roles_view
 
 
 @roles_v1_router.post(
@@ -103,25 +79,15 @@ async def read_role_v1(
     role_id: UUID,
     session: SessionDependency
 ) -> Any:
-    try:
-        role_view: Roles | None = session.get(entity=Roles, ident=role_id)
+    role_view: Roles | None = session.get(entity=Roles, ident=role_id)
 
-        if role_view is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Role Not Found!"
-            )
-        else:
-            return role_view
-
-    except Exception as fastapi_err:
+    if role_view is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role Not Found!"
         )
+    else:
+        return role_view
 
 
 @roles_v1_router.patch(
@@ -134,32 +100,22 @@ async def update_role_v1(
     role: RoleUpdate,
     session: SessionDependency
 ) -> Any:
-    try:
-        role_db: Roles | None = session.get(entity=Roles, ident=role_id)
+    role_db: Roles | None = session.get(entity=Roles, ident=role_id)
 
-        if role_db is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Role Not Found!"
-            )
-        else:
-            role_data: dict[str, Any] = role.model_dump(exclude_unset=True)
-            role_db.sqlmodel_update(obj=role_data)
-
-            session.add(instance=role_db)
-            session.commit()
-            session.refresh(instance=role_db)
-
-            return role_db
-
-    except Exception as fastapi_err:
+    if role_db is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role Not Found!"
         )
+    else:
+        role_data: dict[str, Any] = role.model_dump(exclude_unset=True)
+        role_db.sqlmodel_update(obj=role_data)
+
+        session.add(instance=role_db)
+        session.commit()
+        session.refresh(instance=role_db)
+
+        return role_db
 
 
 @roles_v1_router.delete(
@@ -171,25 +127,15 @@ async def delete_role_v1(
     role_id: UUID,
     session: SessionDependency
 ) -> Any:
-    try:
-        role_gone: Roles | None = session.get(entity=Roles, ident=role_id)
+    role_gone: Roles | None = session.get(entity=Roles, ident=role_id)
 
-        if role_gone is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Role Not Found!"
-            )
-        else:
-            session.delete(instance=role_gone)
-            session.commit()
-
-            return role_gone
-
-    except Exception as fastapi_err:
+    if role_gone is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
-            }
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Role Not Found!"
         )
+    else:
+        session.delete(instance=role_gone)
+        session.commit()
+
+        return role_gone
