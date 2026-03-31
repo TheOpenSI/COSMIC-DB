@@ -24,7 +24,7 @@ from ...apis.data_models.users import (
 
 
 users_v1_router: APIRouter = APIRouter(
-    prefix="/v1/users",
+    prefix="/api/v1/users",
     tags=["Users API (V1)"],
     responses={
         200: {
