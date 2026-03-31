@@ -10,6 +10,7 @@ from sqlmodel import select
 ### Type hints ###
 from uuid import UUID
 from typing_extensions import Any, Sequence
+from ...types.tags import APITag
 
 
 ### Internal modules ###
@@ -25,7 +26,7 @@ from ...apis.data_models.roles import (
 
 roles_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/roles",
-    tags=["Roles API (V1)"]
+    tags=[APITag.role]
 )
 
 
