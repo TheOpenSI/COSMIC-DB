@@ -24,7 +24,7 @@ from ...apis.data_models.roles import (
 
 
 roles_v1_router: APIRouter = APIRouter(
-    prefix="/v1/roles",
+    prefix="/api/v1/roles",
     tags=["Roles API (V1)"],
     responses={
         200: {
