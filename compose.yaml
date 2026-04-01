@@ -125,6 +125,7 @@ networks:
   cosmic-infrastructure-internal:
     name: cosmic_net
     driver: bridge
+    external: true
 
 
 secrets:
