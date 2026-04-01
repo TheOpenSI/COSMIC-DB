@@ -123,8 +123,10 @@ volumes:
 
 networks:
   cosmic-infrastructure-internal:
-    name: api_cosmic_infrastructure_net
+    # name: api_cosmic_infrastructure_net
+    name: cosmic_net
     driver: bridge
+    external: true
 
 
 secrets:

@@ -17,10 +17,17 @@ from ...types.tags import APITag
 from ...cores.db import SessionDependency
 from ...apis.table_models.users import Users
 from ...apis.data_models.users import (
+    # For validation (Data Model)
     UserCreate,
-    UserPublic,
-    UserUpdate,
-    UserDelete
+    UserUpdate
+)
+from ...types.api_responses.users import (
+    # For client responses (Responses Model)
+    UsersPublicResponse,
+    UserCreateResponse,
+    UserPublicResponse,
+    UserUpdateResponse,
+    UserDeleteResponse
 )
 
 
@@ -33,20 +40,32 @@ users_v1_router: APIRouter = APIRouter(
 @users_v1_router.get(
     path="/",
     status_code=status.HTTP_200_OK,
-    response_model=list[UserPublic]
+    response_model=UsersPublicResponse
 )
 async def read_users_v1(
     session: SessionDependency
 ) -> Any:
     users_view: Sequence[Users] = session.exec(statement=select(Users)).all()
+    total_users: int = len(users_view)
 
-    return users_view
+    if (total_users == 0):
+        return {
+            "success": True,
+            "count": total_users, # 0
+            "result": users_view
+        }
+    else:
+        return {
+            "success": True,
+            "count": total_users, # all fetchable user data
+            "result": users_view
+        }
 
 
 @users_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=UserPublic
+    response_model=UserCreateResponse
 )
 async def create_user_v1(
     user: UserCreate,
@@ -59,7 +78,10 @@ async def create_user_v1(
         session.commit()
         session.refresh(instance=user_db)
 
-        return user_db
+        return {
+            "success": True,
+            "created": user_db
+        }
 
     except Exception as fastapi_err:
         raise HTTPException(
@@ -74,7 +96,7 @@ async def create_user_v1(
 @users_v1_router.get(
     path="/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserPublic
+    response_model=UserPublicResponse
 )
 async def read_user_v1(
     user_id: UUID,
@@ -88,13 +110,16 @@ async def read_user_v1(
             detail="User Not Found!"
         )
     else:
-        return user_view
+        return {
+            "success": True,
+            "result": user_view
+        }
 
 
 @users_v1_router.patch(
     path="/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserPublic
+    response_model=UserUpdateResponse
 )
 async def update_user_v1(
     user_id: UUID,
@@ -116,13 +141,16 @@ async def update_user_v1(
         session.commit()
         session.refresh(instance=user_db)
 
-        return user_db
+        return {
+            "success": True,
+            "updated": user_db
+        }
 
 
 @users_v1_router.delete(
     path="/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserDelete
+    response_model=UserDeleteResponse
 )
 async def delete_user_v1(
     user_id: UUID,
@@ -139,4 +167,7 @@ async def delete_user_v1(
         session.delete(instance=user_gone)
         session.commit()
 
-        return user_gone
+        return {
+            "success": True,
+            "deleted": user_gone
+        }
