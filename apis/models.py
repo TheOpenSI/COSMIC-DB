@@ -2,8 +2,7 @@
 from sqlmodel import (
     Field,
     SQLModel,
-    Relationship,
-    text
+    Relationship
 )
 from sqlalchemy.schema import (
     PrimaryKeyConstraint,
@@ -15,15 +14,13 @@ from sqlalchemy.schema import (
 ### Type hints ###
 from datetime import datetime, timezone
 from uuid import UUID, uuid7
-from sqlalchemy.types import (
+from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
-    Uuid,
+    VARCHAR,
     Text,
-    VARCHAR
+    Uuid
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from pydantic.networks import EmailStr
-from pydantic.types import JsonValue
 from typing import Optional
 
 
@@ -31,27 +28,41 @@ from typing import Optional
 
 
 
+"""
+To understand how this file structured, take a look at:
+https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
+"""
+
+
 ################################################
 ### Base Model (inheritance by other models) ###
 ################################################
 class UserBase(SQLModel):
-    name: str = Field(
-        max_length=100,
+    role_id: UUID = Field(
         nullable=False,
-        sa_type=VARCHAR
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
+        ) # pyright: ignore
+    )
+    name: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
     )
 
 
 class RoleBase(SQLModel):
-    name: str = Field(
-        max_length=20,
-        nullable=False,
-        sa_type=VARCHAR
-    )
     desc: str | None = Field(
         default=None,
         nullable=True,
-        sa_type=Text
+        sa_type=Text(
+            length=None,
+            collation=None
+        ) # pyright: ignore
     )
 
 
@@ -134,10 +145,11 @@ class RoleBase(SQLModel):
 ### Table Model (dynamic database table creations) ###
 ######################################################
 class Users(UserBase, table=True):
-    __tablename__: str = "users" # type: ignore
+    __tablename__: str = "users" # pyright: ignore
     __table_args__: tuple[
         PrimaryKeyConstraint,
-        UniqueConstraint
+        UniqueConstraint,
+        ForeignKeyConstraint
     ] = (
         PrimaryKeyConstraint(
             "id",
@@ -147,28 +159,44 @@ class Users(UserBase, table=True):
             "email",
             name="UK_USER_EMAIL"
         ),
+        ForeignKeyConstraint(
+            columns=["role_id"],
+            refcolumns=["roles.id"],
+            name="FK_USER_ROLE_ID",
+            onupdate="CASCADE",
+            ondelete="CASCADE",
+            match="FULL"
+        )
     )
+
     email: str | None = Field(
         default=None,
-        max_length=256,
+        max_length=255,
         nullable=True,
-        sa_type=VARCHAR
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
     )
     id: UUID = Field(
         default_factory=(lambda: uuid7()),
-        primary_key=True,
         nullable=False,
-        sa_type=Uuid
-    )
-    password: str = Field(
-        max_length=256,
-        nullable=False,
-        sa_type=VARCHAR
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
+        ) # pyright: ignore
     )
     create_on: datetime = Field(
         default_factory=(lambda: datetime.now(tz=timezone.utc)),
         nullable=False,
-        sa_type=TIMESTAMP(timezone=True) # type: ignore
+        sa_type=TIMESTAMP(timezone=True) # pyright: ignore
+    )
+
+    """
+    https://sqlmodel.tiangolo.com/tutorial/relationship-attributes/
+    """
+    role: Optional["Roles"] = Relationship(
+        back_populates="user"
     )
     # chatboxes: list["Chatboxes"] = Relationship(
     #     back_populates="users",
@@ -183,25 +211,48 @@ class Users(UserBase, table=True):
 
 
 class Roles(RoleBase, table=True):
-    __tablename__: str = "roles" # type: ignore
+    __tablename__: str = "roles" # pyright: ignore
     __table_args__: tuple[
-        PrimaryKeyConstraint
-    ]= (
+        PrimaryKeyConstraint,
+        UniqueConstraint
+    ] = (
         PrimaryKeyConstraint(
             "id",
             name="PK_ROLE_ID"
         ),
+        UniqueConstraint(
+            "name",
+            name="UK_ROLE_NAME"
+        ),
+    )
+
+    name: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
     )
     id: UUID = Field(
         default_factory=(lambda: uuid7()),
-        primary_key=True,
         nullable=False,
-        sa_type=Uuid
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
+        ) # pyright: ignore
     )
     create_on: datetime = Field(
         default_factory=(lambda: datetime.now(tz=timezone.utc)),
         nullable=False,
-        sa_type=TIMESTAMP(timezone=True) # type: ignore
+        sa_type=TIMESTAMP(timezone=True) # pyright: ignore
+    )
+
+    """
+    https://sqlmodel.tiangolo.com/tutorial/relationship-attributes/
+    """
+    user: Optional["Users"] = Relationship(
+        back_populates="role"
     )
 
 
@@ -356,22 +407,16 @@ class Roles(RoleBase, table=True):
 class UserPublic(UserBase):
     email: EmailStr | None = None
     id: UUID
-    # TODO: implement hashed password
-    password: str
     create_on: datetime
 
 
 class UserCreate(UserBase):
-    # TODO: implement hashed password
     email: EmailStr | None = None
-    password: str
 
 
 class UserUpdate(UserBase):
     name:       str | None = None # type: ignore
     email:      EmailStr | None = None
-    # TODO: implement hashed password
-    password:   str | None = None # type: ignore
 
 
 class UserDelete(UserBase):
