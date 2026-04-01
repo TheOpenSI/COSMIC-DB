@@ -44,7 +44,9 @@ cosmic_app.add_middleware(
     ],
     allow_methods=[
         "POST",
-        "PATCH"
+        "PATCH",
+        "GET",
+        "DELETE"
     ],
     allow_headers=[],
     max_age=600
