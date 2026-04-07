@@ -55,13 +55,13 @@ def upgrade() -> None:
         {
             'id': admin_role_id,
             'name': 'Admin',
-            'desc': '',
+            'desc': 'Has full administrative rights to configure CoSMIC, including selecting and managing models, adjusting RAG thresholds, and enabling or disabling available services.',
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
             'id': user_role_id,
             'name': 'User',
-            'desc': '',
+            'desc': 'Can use CoSMIC but cannot change its configuration',
             'create_on': datetime.now(tz=timezone.utc)
         },
     ]
