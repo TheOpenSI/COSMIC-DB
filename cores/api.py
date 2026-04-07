@@ -8,8 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 ### Internal modules ###
-from ..cores.db import create_db_and_table
-
 from ..routers.api_endpoints.users import users_v1_router
 from ..routers.api_endpoints.roles import roles_v1_router
 # from ..routers.api_endpoints.chatboxes import chatboxes_v1_router
@@ -23,11 +21,13 @@ from ..routers.api_endpoints.roles import roles_v1_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Equivalent to 'startup' event
-    create_db_and_table()
 
+    # NOTE:
+    # We keep this for now as I do plan to add some logging/health checks here
+    # somewhere in the future (possibly?).
     yield
 
-    # Equivalent to 'shutdown' event (Optional)
+    # Equivalent to 'shutdown' event
 
 
 cosmic_app: FastAPI = FastAPI(lifespan=lifespan)

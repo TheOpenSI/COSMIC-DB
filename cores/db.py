@@ -1,7 +1,6 @@
 ### Core modules ###
 from fastapi import Depends
 from sqlmodel import (
-    SQLModel,
     Session,
     create_engine
 )
@@ -51,16 +50,4 @@ def get_session() -> Generator[Session, Any, Any]:
         yield session
 
 
-def create_db_and_table() -> None:
-    # WARNING: `create_all()` function is for dev only. Using migration method with Alembic module!
-    SQLModel.metadata.create_all(bind=cosmic_db_engine)
-
-    return None
-
-
 SessionDependency = Annotated[Session, Depends(dependency=get_session)]
-
-
-# Prevent running the function when this file get included as module
-if __name__ == "__main__":
-    create_db_and_table()
