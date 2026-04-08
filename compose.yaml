@@ -1,16 +1,11 @@
-name: OpenSI-CoSMIC-Infrastructure
+name: OpenSI-CoSMIC
 
 
 services:
   backend:
-    container_name: cosmic-infrastructure-fastapi
+    container_name: cosmic-backend-fastapi
     depends_on:
       database:
-        restart: true
-        condition: service_started
-        required: true
-
-      gui:
         restart: true
         condition: service_started
         required: true
@@ -30,11 +25,11 @@ services:
         # trying to bypass the ignore at build time. This's very important when
         # you do the development in Windows.
       - type: volume
-        source: cosmic-infrastructure-fastapi-venv
+        source: cosmic-backend-fastapi-venv
         target: /app/.venv
     # NOTE: For quick debugging (on dev only)
     ports:
-      - name: cosmic-infrastructure-fastapi-uvicorn
+      - name: cosmic-backend-fastapi-uvicorn
         target: 8000
         host_ip: 127.0.0.1
         published: "8000"
@@ -42,20 +37,20 @@ services:
         app_protocol: http
         mode: host
     networks:
-        - cosmic-infrastructure-internal
+        - cosmic-backend
 
 
   database:
-    container_name: cosmic-infrastructure-postgres
+    container_name: cosmic-postgres
     restart: unless-stopped
     # Set shared memory limit when using docker compose
     shm_size: 128mb
     secrets:
-      - source: cosmic-infrastructure-postgres-user
+      - source: cosmic-postgres-user
         target: usr.txt
-      - source: cosmic-infrastructure-postgres-database
+      - source: cosmic-postgres-database
         target: db.txt
-      - source: cosmic-infrastructure-postgres-password
+      - source: cosmic-postgres-password
         target: pwd.txt
     environment:
         POSTGRES_USER_FILE: /run/secrets/usr.txt
@@ -66,35 +61,35 @@ services:
       dockerfile: ./docker/dockerfiles/postgres.Dockerfile
     volumes:
       - type: volume
-        source: cosmic-infrastructure-postgres-data
+        source: cosmic-postgres-data
         target: /var/lib/postgresql
     networks:
-        - cosmic-infrastructure-internal
+        - cosmic-backend
 
 
-  gui:
-    container_name: cosmic-infrastructure-pgadmin
+  database-gui:
+    container_name: cosmic-pgadmin
     restart: unless-stopped
     secrets:
-      - source: cosmic-infrastructure-pgadmin-password
+      - source: cosmic-pgadmin-password
         target: pwd.txt
     environment:
         # NOTE: Make sure to enable 2FA for this account on prod
         PGADMIN_DEFAULT_EMAIL: opensi@canberra.edu.au
         PGADMIN_DEFAULT_PASSWORD_FILE: /run/secrets/pwd.txt
     configs:
-      - source: cosmic-infrastructure-pgadmin-server
+      - source: cosmic-pgadmin-server
         target: /pgadmin4/servers.json
     build:
       context: ./
       dockerfile: ./docker/dockerfiles/pgadmin.Dockerfile
     volumes:
       - type: volume
-        source: cosmic-infrastructure-pgadmin-data
+        source: cosmic-pgadmin-data
         target: /var/lib/pgadmin
     # NOTE: For quick debugging (on dev only)
     ports:
-      - name: cosmic-infrastructure-pgadmin-gunicorn
+      - name: cosmic-pgadmin-gunicorn
         target: 80
         host_ip: 127.0.0.1
         published: "5050"
@@ -102,46 +97,45 @@ services:
         app_protocol: http
         mode: host
     networks:
-        - cosmic-infrastructure-internal
+        - cosmic-backend
 
 
 volumes:
   # NOTE: as explained above, define this only in dev (delete on prod).
-  cosmic-infrastructure-fastapi-venv:
-    name: cosmic-infrastructure-backend-ignore
+  cosmic-backend-fastapi-venv:
+    name: cosmic-backend-ignore
 
   # NOTE: data will be stored from the hosting machine rather than inside
   # container due to disadvantage of Docker Overlay2 (on prod only)
-  cosmic-infrastructure-postgres-data:
-    name: cosmic-infrastructure-relational
+  cosmic-postgres-data:
+    name: cosmic-database-relational
 
   # NOTE: data will be stored from the hosting machine rather than inside
   # container due to disadvantage of Docker Overlay2 (on prod only)
-  cosmic-infrastructure-pgadmin-data:
-    name: cosmic-infrastructure-gui
+  cosmic-pgadmin-data:
+    name: cosmic-database-gui
 
 
 networks:
-  cosmic-infrastructure-internal:
+  cosmic-backend:
     name: cosmic_net
     driver: bridge
-    external: true
 
 
 secrets:
-  cosmic-infrastructure-postgres-user:
+  cosmic-postgres-user:
     file: ./docker/secrets/postgres_usr.txt
 
-  cosmic-infrastructure-postgres-database:
+  cosmic-postgres-database:
     file: ./docker/secrets/postgres_db.txt
 
-  cosmic-infrastructure-postgres-password:
+  cosmic-postgres-password:
     file: ./docker/secrets/postgres_pwd.txt
 
-  cosmic-infrastructure-pgadmin-password:
+  cosmic-pgadmin-password:
     file: ./docker/secrets/pgadmin_pwd.txt
 
 
 configs:
-  cosmic-infrastructure-pgadmin-server:
+  cosmic-pgadmin-server:
     file: ./docker/configs/pgadmin_svr.json
