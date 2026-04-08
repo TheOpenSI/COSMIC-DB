@@ -9,11 +9,6 @@ services:
         restart: true
         condition: service_started
         required: true
-
-      gui:
-        restart: true
-        condition: service_started
-        required: true
     restart: unless-stopped
     build:
       context: ./
@@ -69,10 +64,10 @@ services:
         source: cosmic-postgres-data
         target: /var/lib/postgresql
     networks:
-        - cosmic-infrastructure-internal
+        - cosmic-backend
 
 
-  gui:
+  database-gui:
     container_name: cosmic-pgadmin
     restart: unless-stopped
     secrets:
@@ -107,18 +102,18 @@ services:
 
 volumes:
   # NOTE: as explained above, define this only in dev (delete on prod).
-  cosmic-infrastructure-fastapi-venv:
+  cosmic-backend-fastapi-venv:
     name: cosmic-backend-ignore
 
   # NOTE: data will be stored from the hosting machine rather than inside
   # container due to disadvantage of Docker Overlay2 (on prod only)
-  cosmic-infrastructure-postgres-data:
-    name: cosmic-relational
+  cosmic-postgres-data:
+    name: cosmic-database-relational
 
   # NOTE: data will be stored from the hosting machine rather than inside
   # container due to disadvantage of Docker Overlay2 (on prod only)
-  cosmic-infrastructure-pgadmin-data:
-    name: cosmic-gui
+  cosmic-pgadmin-data:
+    name: cosmic-database-gui
 
 
 networks:
