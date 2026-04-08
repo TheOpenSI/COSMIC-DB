@@ -67,7 +67,7 @@ def upgrade() -> None:
     ]
 
     # Define data to pre-populate to 'Users' table
-    users_data: list[dict[str, UUID | str | datetime]] = [
+    users_data: list[dict[str, UUID | str | None | datetime]] = [
         {
             'id': uuid7(),
             'role_id': admin_role_id,
@@ -79,7 +79,7 @@ def upgrade() -> None:
             'id': uuid7(),
             'role_id': user_role_id,
             'name': 'test_user',
-            'email': '',
+            'email': None,
             'create_on': datetime.now(tz=timezone.utc)
         },
     ]
