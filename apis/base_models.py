@@ -49,3 +49,22 @@ class RoleBase(SQLModel):
             collation=None
         ) # pyright: ignore
     )
+
+
+class ServiceBase(SQLModel):
+    name: str = Field(
+        max_length=100,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=100,
+            collation=None
+        ) # pyright: ignore
+    )
+    desc: str | None = Field(
+        default=None,
+        nullable=True,
+        sa_type=Text(
+            length=None,
+            collation=None
+        ) # pyright: ignore
+    )
