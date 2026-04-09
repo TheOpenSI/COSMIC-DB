@@ -19,27 +19,6 @@
 #     )
 #
 #
-# class ServiceBase(SQLModel):
-#     name: str = Field(
-#         max_length=100,
-#         nullable=False,
-#         sa_type=VARCHAR
-#     )
-#     desc: str | None = Field(
-#         default=None,
-#         nullable=True,
-#         sa_type=Text
-#     )
-#     status: bool = Field(
-#         default=False,
-#         sa_column_kwargs={
-#             "server_default": text(text="FALSE"),
-#             # Gotta explains the usecase of this column a bit
-#             "comment": "mainly for the multi-services usage scenario."
-#         }
-#     )
-#
-#
 # class ModelBase(SQLModel):
 #     name: str = Field(
 #         max_length=100,
@@ -118,34 +97,6 @@
 #     )
 #     users: Optional["Users"] = Relationship(
 #         back_populates="chatboxes"
-#     )
-#     chat_sessions: list["UserChatSession"] = Relationship()
-#
-#
-# class Services(ServiceBase, table=True):
-#     __tablename__: str = "services" # type: ignore
-#     __table_args__: tuple[
-#         PrimaryKeyConstraint
-#     ] = (
-#         PrimaryKeyConstraint(
-#             "id",
-#             name="PK_SERVICE_ID"
-#         ),
-#     )
-#     id: UUID = Field(
-#         default_factory=(lambda: uuid7()),
-#         primary_key=True,
-#         nullable=False,
-#         sa_type=Uuid
-#     )
-#     create_on: datetime = Field(
-#         default_factory=(lambda: datetime.now(tz=timezone.utc)),
-#         nullable=False,
-#         sa_type=TIMESTAMP(timezone=True) # type: ignore
-#     )
-#     models: list["Models"] = Relationship(
-#         back_populates="services",
-#         link_model=ServiceModelLink
 #     )
 #     chat_sessions: list["UserChatSession"] = Relationship()
 #
