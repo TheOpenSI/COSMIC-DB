@@ -216,29 +216,6 @@
 #     }
 #
 #
-# class ServicePublic(ServiceBase):
-#     id: UUID
-#     create_on: datetime
-#
-#
-# class ServiceCreate(ServiceBase):
-#     pass
-#
-#
-# class ServiceUpdate(ServiceBase):
-#     name:   str | None = None # type: ignore
-#     desc:   str | None = None
-#
-#
-# class ServiceDelete(ServiceBase):
-#     id: UUID
-#     create_on: datetime
-#     response: dict[str, int | str] = {
-#         "status": 200,
-#         "message": "OK"
-#     }
-#
-#
 # class ModelPublic(ModelBase):
 #     id: UUID
 #     install_on: datetime
