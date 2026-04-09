@@ -25,9 +25,9 @@ def upgrade() -> None:
     # Define pre-population tables
     roles_table: sa.Table = op.create_table(
         'roles',
-        sa.Column('desc', sa.TEXT(length=None, collation=None), autoincrement=False, nullable=True),
-        sa.Column('name', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
         sa.Column('id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
+        sa.Column('name', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('desc', sa.TEXT(length=None, collation=None), autoincrement=False, nullable=True),
         sa.Column('create_on', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_ROLE_ID')),
         sa.UniqueConstraint('name', name=op.f(name='UK_ROLE_NAME'), postgresql_include=[], postgresql_nulls_not_distinct=False),
@@ -35,10 +35,10 @@ def upgrade() -> None:
     )
     users_table: sa.Table = op.create_table(
         'users',
+        sa.Column('id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
         sa.Column('role_id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
         sa.Column('name', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
         sa.Column('email', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
         sa.Column('create_on', postgresql.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
         sa.ForeignKeyConstraint(['role_id'], ['roles.id'], name=op.f('FK_USER_ROLE_ID'), onupdate='CASCADE', ondelete='CASCADE', match='FULL'),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_USER_ID')),
@@ -100,11 +100,17 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    # Since it's a fresh run, TRUNCATE with CASCADE is the cleanest "Undo"
-    # It wipes both tables and handles the FK relationship automatically
-    op.execute(
-        sqltext="TRUNCATE TABLE public.users, public.roles RESTART IDENTITY CASCADE",
-        execution_options=None
+    # Wipes table, any FK relationship, and its data automatically since this's
+    # just a fresh run
+    op.drop_table(
+        table_name='roles',
+        schema='public',
+        if_exists=True
+    )
+    op.drop_table(
+        table_name='users',
+        schema='public',
+        if_exists=True
     )
 
     return None
