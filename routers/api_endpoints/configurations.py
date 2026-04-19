@@ -27,7 +27,7 @@ configs_v1_router: APIRouter = APIRouter(
     status_code=status.HTTP_200_OK,
     response_model=None
 )
-async def read_roles_v1(
+async def read_configs_v1(
     session: SessionDependency
 ) -> Any:
     configs_view: Sequence[Configurations] = session.exec(statement=select(Configurations)).all()
@@ -42,6 +42,6 @@ async def read_roles_v1(
     else:
         return {
             "success": True,
-            "count": total_configs, # all fetchable role data
+            "count": total_configs, # all fetchable configs data
             "result": configs_view
         }

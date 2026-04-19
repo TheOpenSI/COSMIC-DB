@@ -12,8 +12,8 @@ from sqlalchemy.sql.sqltypes import (
     Text,
     Uuid
 )
-from typing import Any
 from sqlalchemy.dialects.postgresql import JSONB
+from ..types.api_responses.configurations import ConfigurationResponse
 
 
 ### Internal modules ###
@@ -81,7 +81,7 @@ class ConfigurationBase(SQLModel):
             collation=None
         ) # pyright: ignore
     )
-    details: dict[str, Any] = Field(
+    details: ConfigurationResponse = Field(
         nullable=False,
         sa_type=JSONB(
             none_as_null=True,
