@@ -12,6 +12,8 @@ from sqlalchemy.sql.sqltypes import (
     Text,
     Uuid
 )
+from sqlalchemy.dialects.postgresql import JSONB
+from ..types.api_responses.configurations import ConfigurationResponse
 
 
 ### Internal modules ###
@@ -66,5 +68,23 @@ class ServiceBase(SQLModel):
         sa_type=Text(
             length=None,
             collation=None
+        ) # pyright: ignore
+    )
+
+
+class ConfigurationBase(SQLModel):
+    name: str | None = Field(
+        default=None,
+        nullable=True,
+        sa_type=Text(
+            length=None,
+            collation=None
+        ) # pyright: ignore
+    )
+    details: ConfigurationResponse = Field(
+        nullable=False,
+        sa_type=JSONB(
+            none_as_null=True,
+            astext_type=None
         ) # pyright: ignore
     )
