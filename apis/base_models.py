@@ -12,8 +12,8 @@ from sqlalchemy.sql.sqltypes import (
     Text,
     Uuid
 )
-from typing import Any
 from sqlalchemy.dialects.postgresql import JSONB
+from ..types.api_responses.chatboxes import ChatboxResponse
 
 
 ### Internal modules ###
@@ -88,13 +88,7 @@ class ChatboxBase(SQLModel):
             collation=None
         ) # pyright: ignore
     )
-    details: dict[str, Any] = Field(
-        # TODO:
-        # Chat history format. We need to have a chat with the team first as this
-        # can get very complicated to modify later on if we just trying to add
-        # features one by one without having a fairly acceptable database design
-        # on this.
-        # default={},
+    details: ChatboxResponse = Field(
         nullable=False,
         sa_type=JSONB(
             none_as_null=True,
