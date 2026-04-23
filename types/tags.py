@@ -18,3 +18,4 @@ class APITag(Enum):
     role        = "Roles API Endpoint"
     service     = "Services API Endpoint"
     config      = "Configurations API Endpoint"
+    chatbox     = "Chatboxes API Endpoint"
