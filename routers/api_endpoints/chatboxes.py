@@ -1,6 +1,7 @@
 ### Core modules ###
 from fastapi import (
     APIRouter,
+    HTTPException,
     status
 )
 from sqlmodel import select
@@ -10,10 +11,16 @@ from sqlmodel import select
 from ...cores.db import SessionDependency
 from typing import Any, Sequence
 from ...types.tags import APITag
+from pydantic.types import UUID7
 
 
 ### Internal modules ###
 from ...apis.table_models.chatboxes import Chatboxes
+from ...types.api_responses.chatboxes import (
+    # For client responses (Responses Model)
+    ChatboxesPublicResponse,
+    ChatboxPublicResponse
+)
 
 
 chatboxes_v1_router: APIRouter = APIRouter(
@@ -25,7 +32,7 @@ chatboxes_v1_router: APIRouter = APIRouter(
 @chatboxes_v1_router.get(
     path="/",
     status_code=status.HTTP_200_OK,
-    response_model=None
+    response_model=ChatboxesPublicResponse
 )
 async def read_chatboxes_v1(
     session: SessionDependency
@@ -44,4 +51,27 @@ async def read_chatboxes_v1(
             "success": True,
             "count": total_chatboxes, # all fetchable chatboxes data
             "result": chatboxes_view
+        }
+
+
+@chatboxes_v1_router.get(
+    path="/{chatbox_session_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ChatboxPublicResponse
+)
+async def read_chatbox_v1(
+    chatbox_session_id: UUID7,
+    session: SessionDependency
+) -> Any:
+    chatbox_view: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_session_id)
+
+    if chatbox_view is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chatbox Session Not Found!"
+        )
+    else:
+        return {
+            "success": True,
+            "result": chatbox_view
         }

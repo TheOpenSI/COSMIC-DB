@@ -6,7 +6,9 @@ from sqlmodel import (
 
 
 ### Type hints ###
+from datetime import datetime, timezone
 from uuid import UUID
+from typing import TYPE_CHECKING, Any
 from sqlalchemy.sql.sqltypes import (
     VARCHAR,
     Text,
@@ -14,7 +16,6 @@ from sqlalchemy.sql.sqltypes import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from ..types.api_responses.configurations import ConfigurationResponse
-from ..types.api_responses.chatboxes import ChatboxResponse
 
 
 ### Internal modules ###
@@ -90,7 +91,7 @@ class ConfigurationBase(SQLModel):
         ) # pyright: ignore
     )
 
-    
+
 class ChatboxBase(SQLModel):
     user_id: UUID = Field(
         nullable=False,
@@ -103,7 +104,16 @@ class ChatboxBase(SQLModel):
         max_length=256,
         nullable=False,
     )
-    details: ChatboxResponse = Field(
+    details: list[dict[str, Any]] = Field(
+        default=[
+            # Chat history format
+            {
+                "<user-role>": "<user-query>",
+                "query_create_on": datetime.now(tz=timezone.utc),
+                "<llm-role>": "<llm-response>",
+                "response_create_on": datetime.now(tz=timezone.utc)
+            }
+        ],
         nullable=False,
         sa_type=JSONB(
             none_as_null=True,
