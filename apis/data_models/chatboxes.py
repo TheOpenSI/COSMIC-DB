@@ -1,21 +1,15 @@
 ### Core modules ###
+from pydantic import ConfigDict
 
 
 ### Type hints ###
 from datetime import datetime
-from typing import TYPE_CHECKING
 from uuid import UUID
 
 
 ### Internal modules ###
 from ..base_models import ChatboxBase
 from ..data_models.users import UserPublicWithRole
-if TYPE_CHECKING:
-    """
-    This's to resolve circular import issues, take a look at:
-    https://sqlmodel.tiangolo.com/tutorial/code-structure/#circular-imports
-    """
-    from ...types.api_responses.chatboxes import ChatboxResponse
 
 
 
@@ -33,15 +27,6 @@ class ChatboxPublicWithUser(ChatboxPublic):
 
 
 class ChatboxCreate(ChatboxBase):
+    model_config = ConfigDict(extra="forbid") # pyright: ignore
+
     pass
-
-
-class ChatboxUpdate(ChatboxBase):
-    user_id:    UUID | None = None              # pyright: ignore
-    name:       str | None = None               # pyright: ignore
-    details:    ChatboxResponse | None = None   # pyright: ignore
-
-
-class ChatboxDelete(ChatboxBase):
-    id:         UUID
-    create_on:  datetime
