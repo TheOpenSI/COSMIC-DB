@@ -3,9 +3,7 @@ from pydantic import ConfigDict
 
 
 ### Type hints ###
-from datetime import datetime
 from uuid import UUID
-
 from pydantic.types import UUID7, AwareDatetime
 from ...types.json_schemas import ChatHistorySchema
 
@@ -36,6 +34,8 @@ class ChatboxCreate(ChatboxBase):
 
 
 class ChatboxUpdate(ChatboxBase):
+    model_config = ConfigDict(extra="forbid")           # pyright: ignore
+
     user_id:    UUID7 | None                    = None  # pyright: ignore
     name:       str | None                      = None  # pyright: ignore
     details:    list[ChatHistorySchema] | None  = None  # pyright: ignore
