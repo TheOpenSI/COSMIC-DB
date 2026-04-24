@@ -23,13 +23,15 @@ from fastapi.exceptions import ResponseValidationError
 from ...apis.table_models.chatboxes import Chatboxes
 from ...apis.data_models.chatboxes import (
     # For validation (Data Model)
-    ChatboxCreate
+    ChatboxCreate,
+    ChatboxUpdate
 )
 from ...types.api_responses.chatboxes import (
     # For client responses (Responses Model)
     ChatboxesPublicResponse,
     ChatboxCreateResponse,
-    ChatboxPublicResponse
+    ChatboxPublicResponse,
+    ChatboxUpdateResponse
 )
 
 
@@ -198,4 +200,35 @@ async def read_chatbox_v1(
         return {
             "success": True,
             "result": chatbox_view
+        }
+
+
+@chatboxes_v1_router.patch(
+    path="/{chatbox_session_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ChatboxUpdateResponse
+)
+async def update_chatbox_v1(
+    chatbox_session_id: UUID7,
+    chatbox_history: ChatboxUpdate,
+    session: SessionDependency
+) -> Any:
+    chatbox_db: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_session_id)
+
+    if chatbox_db is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chatbox Not Found!"
+        )
+    else:
+        chatbox_data: dict[str, Any] = chatbox_history.model_dump(mode="json", exclude_unset=True)
+        chatbox_db.sqlmodel_update(obj=chatbox_data)
+
+        session.add(instance=chatbox_db)
+        session.commit()
+        session.refresh(instance=chatbox_db)
+
+        return {
+            "success": True,
+            "updated": chatbox_db
         }

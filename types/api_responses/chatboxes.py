@@ -30,3 +30,8 @@ class ChatboxCreateResponse(BaseModel):
 class ChatboxPublicResponse(BaseModel):
     success:    bool
     result:     ChatboxPublicWithUser
+
+
+class ChatboxUpdateResponse(BaseModel):
+    success:    bool
+    updated:    ChatboxPublic

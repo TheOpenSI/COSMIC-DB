@@ -6,6 +6,9 @@ from pydantic import ConfigDict
 from datetime import datetime
 from uuid import UUID
 
+from pydantic.types import UUID7, AwareDatetime
+from ...types.json_schemas import ChatHistorySchema
+
 
 ### Internal modules ###
 from ..base_models import ChatboxBase
@@ -19,7 +22,7 @@ https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multipl
 """
 class ChatboxPublic(ChatboxBase):
     id:         UUID
-    create_on:  datetime
+    create_on:  AwareDatetime
 
 
 class ChatboxPublicWithUser(ChatboxPublic):
@@ -30,3 +33,9 @@ class ChatboxCreate(ChatboxBase):
     model_config = ConfigDict(extra="forbid") # pyright: ignore
 
     pass
+
+
+class ChatboxUpdate(ChatboxBase):
+    user_id:    UUID7 | None                    = None  # pyright: ignore
+    name:       str | None                      = None  # pyright: ignore
+    details:    list[ChatHistorySchema] | None  = None  # pyright: ignore
