@@ -76,34 +76,22 @@ provided.
 
 ### Update Types
 
-**1. Full Update (PUT semantics)**
+**1. Full Update**
 - Replace the entire chatbox record
 - All fields must be provided
-- Missing fields will be set to NULL/default values
-- Use when: Complete replacement of chatbox data
 
-**2. Partial Update (PATCH semantics)**
+**2. Partial Update**
 - Update only specified fields
-- Unspecified fields retain their current values
-- Two subtypes:
+- Unspecified fields is safely ignored thanks to Pydantic validation
+- We got 2 main sub-types to aware about:
 
     **2.1. Simple Column Data**
     - Scalar values (strings, integers, booleans)
     - Example: `{"name": "New Chat Name"}`
-    - Direct column replacement
 
     **2.2. Complex Column Data (JSONB)**
-
-    *2.2.1. Full JSON Replacement*
-    - Replace entire JSON structure
-    - Provide complete JSON object/array
-    - Use when: Complete restructure of JSON data
-
-    *2.2.2. Partial JSON Update (JSONB Path Operations)*
-    - Update specific keys or array elements
-    - Preserves untouched portions of JSON
-    - Uses PostgreSQL `||` or `jsonb_set()` operations
-    - Use when: Appending to arrays or modifying nested properties
+    - For our usecase, it'll be used to append to existing data only
+    - Uses PostgreSQL `||` operator to efficiently join complex JSONB data
 
 ### Datetime format requirements
 
@@ -124,34 +112,40 @@ format as strict mode enabled (Reference: [**Pydantic docs**](https://pydantic.d
 - `2024-12-24T21:20:00` *(Missing timezone)*
 
 ### Update Operation Examples
+**NOTE:
+We wrote this in YAML format for better readability. Please convert to JSON
+format (if needed).**
 
-```json
+
+```yaml
 // Full update (all fields required)
-{
-    "name": "Updated Session",
-    "details": {"theme": "dark", "messages": []},
-    "updated_at": "2024-12-24T21:20:00Z"
-}
+user_id: "019dc32b-2f4a-7931-ab92-f6d6bf9e9ba4",
+name: "<chat session title>",
+details:
+    - user_role: "<user role>",
+      user_query: "<user query>",
+      query_create_on: "2026-04-25T05:44:23.647Z",
+      llm_role: "<llm role>",
+      llm_response: "<llm response>",
+      response_create_on: "2026-04-25T05:44:23.647Z"
 
-// Partial update - simple fields only
-{
-    "name": "Renamed Session"
-}
+    # Specify more here
 
-// Partial update - append to JSON array
-{
-    "details": {
-        "_append": true,  // Special operator for array append
-        "messages": [{"role": "user", "content": "Hello"}]
-    }
-}
 
-// Partial update - modify specific JSON key
-{
-    "details": {
-        "theme": "light"  // Only updates 'theme', preserves 'messages'
-    }
-}
+// Partial update (simple fields only)
+name: "<chat session title>"
+
+
+// Partial update (complex fields only)
+details:
+    - user_role: "<user role>",
+      user_query: "<user query>",
+      query_create_on: "2026-04-25T05:44:23.647Z",
+      llm_role: "<llm role>",
+      llm_response: "<llm response>",
+      response_create_on: "2026-04-25T05:44:23.647Z"
+
+    # Specify more here
 """
 chatbox_additional_responses: dict[int | str, dict[str, Any]] = {
     409: {
