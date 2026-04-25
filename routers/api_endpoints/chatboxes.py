@@ -329,47 +329,167 @@ async def update_chatbox_v1(
         else:
             chatbox_data: dict[str, Any] = chat_history.model_dump(mode="json", exclude_unset=True)
 
-            if ("details" in chatbox_data) and ("name" not in chatbox_data):
-                #print("Chat history data update found!")
-                chat_history_db_len: int = len(chatbox_db.details)
+            match chatbox_data:
+                #==============================================================#
+                #                           Case 1:                            #
+                #                           Full update                        #
+                #==============================================================#
+                case {
+                    "user_id": user_id,
+                    "name": user_name,
+                    "details": user_chat_history
+                }:
+                    #print("Case 1: Full update - replace everything")
+                    chatbox_prep_data: dict[str, Any] = {}
 
-                if chat_history_db_len == 0:
-                    #print("Empty chat history data found")
-                    chatbox_db.details = chatbox_data["details"]
-                    session.add(instance=chatbox_db)
-                    session.commit()
-                    session.refresh(instance=chatbox_db)
-                    #print(f"Updated chat history data (empty case): {chatbox_db}")
+                    if (str(chatbox_db.user_id) != user_id):
+                        chatbox_prep_data["user_id"] = user_id
 
-                elif chat_history_db_len >= 1:
-                    #print("Existing chat history data found")
-                    chat_history_stmt: Update = (
-                        update(table=Chatboxes)
-                        .where(Chatboxes.id == chatbox_session_id)                              # pyright: ignore
-                        .values(details=Chatboxes.details.op("||")(chatbox_data["details"]))    # pyright: ignore
-                    )
-                    session.exec(statement=chat_history_stmt)
-                    session.commit()
-                    session.refresh(instance=chatbox_db)
-                    #print(f"Updated chat history data (exist case): {chatbox_db}")
+                    else:
+                        # Incoming data matched stored data, skipping.
+                        pass
 
-                return {
-                    "success": True,
-                    "updated": chatbox_db
-                }
+                    if (str(chatbox_db.name) != user_name):
+                        chatbox_prep_data["name"] = user_name
 
-            else:
-                # This logic flow works for [1], [2.1] & [2.2.1]
-                chatbox_db.sqlmodel_update(obj=chatbox_data)
+                    else:
+                        # Incoming data matched stored data, skipping.
+                        pass
 
-                session.add(instance=chatbox_db)
-                session.commit()
-                session.refresh(instance=chatbox_db)
+                    if (chatbox_db.details != user_chat_history):
+                        if any(new_chat_history not in chatbox_db.details for new_chat_history in user_chat_history):
+                            # NOTE: only for type-hint purposes, no actual effect to the logic
+                            new_chat_history: dict[str, Any]
+                            chatbox_prep_data["details"] = Chatboxes.details.op("||")(user_chat_history) # pyright: ignore
 
-                return {
-                    "success": True,
-                    "updated": chatbox_db
-                }
+                        else:
+                            # Incoming JSON data matched stored JSON data, skipping.
+                            pass
+
+                    else:
+                        # Incoming data matched stored data, skipping.
+                        # NOTE:
+                        # This edge case only work when chat history size is
+                        # exactly one
+                        pass
+
+                    if chatbox_prep_data:
+                        chatbox_stmt: Update = (
+                            update(table=Chatboxes)
+                            .where(Chatboxes.id == chatbox_session_id)  # pyright: ignore
+                            .values(**chatbox_prep_data)                # pyright: ignore
+                            .returning(Chatboxes)
+                        )
+                        session.exec(statement=chatbox_stmt)
+                        session.commit()
+
+                    else:
+                        # Incoming data matched stored data, skipping.
+                        # NOTE:
+                        # This edge case only work when all the check above
+                        # is false
+                        pass
+
+
+                #==============================================================#
+                #                           Case 2A:                           #
+                #       Partial update, simple data only (either key provided) #
+                #==============================================================#
+                case {"user_id": user_id}           \
+                if   ("name" not in chatbox_data)   \
+                and  ("details" not in chatbox_data):
+                    #print("Case 2A: Partial update - simple data only (update new 'user_id' basic record)")
+                    if str(chatbox_db.user_id) == user_id:
+                        # Do nothing as the data matched
+                        pass
+
+                    else:
+                        chatbox_db.sqlmodel_update(obj=chatbox_data)
+
+                        session.add(instance=chatbox_db)
+                        session.commit()
+                        session.refresh(instance=chatbox_db)
+
+
+                #==============================================================#
+                #                           Case 2B:                           #
+                #       Partial update, simple data only (either key provided) #
+                #==============================================================#
+                case {"name": user_name}                \
+                if   ("user_id" not in chatbox_data)    \
+                and  ("details" not in chatbox_data):
+                    #print("Case 2B: Partial update - simple data only (update new 'name' basic record)")
+                    if str(chatbox_db.name) == user_name:
+                        # Do nothing as the data matched
+                        pass
+
+                    else:
+                        chatbox_db.sqlmodel_update(obj=chatbox_data)
+
+                        session.add(instance=chatbox_db)
+                        session.commit()
+                        session.refresh(instance=chatbox_db)
+
+
+                #==============================================================#
+                #                           Case 2C:                           #
+                #       Partial update, simple data only (all key provided)    #
+                #==============================================================#
+                case {"user_id": user_id, "name": user_name} \
+                if "details" not in chatbox_data:
+                    #print("Case 2C: Partial update - simple data only (update new basic record)")
+                    if  (str(chatbox_db.user_id) == user_id) \
+                    and (str(chatbox_db.name) == user_name):
+                        # Do nothing as the data matched
+                        pass
+
+                    else:
+                        chatbox_db.sqlmodel_update(obj=chatbox_data)
+
+                        session.add(instance=chatbox_db)
+                        session.commit()
+                        session.refresh(instance=chatbox_db)
+
+
+                #==============================================================#
+                #                           Case 3:                            #
+                #       Partial update, complex data only (various scenarios)  #
+                #==============================================================#
+                case {"details": user_chat_history}     \
+                if   ("user_id" not in chatbox_data)    \
+                and  ("name" not in chatbox_data):
+                    # WARNING:
+                    # Later on when we eventually added the ability for user to
+                    # edit convo pairs, this check would need to be update as
+                    # well as the db schema.
+
+                    #print("Case 3: Partial update - complex data only (various scenarios)")
+                    if len(chatbox_db.details) >= 0:
+                        chatbox_stmt: Update = (
+                            update(table=Chatboxes)
+                            .where(Chatboxes.id == chatbox_session_id)                              # pyright: ignore
+                            .values(details=Chatboxes.details.op("||")(chatbox_data["details"]))    # pyright: ignore
+                            .returning(Chatboxes)
+                        )
+                        session.exec(statement=chatbox_stmt)
+                        session.commit()
+
+                    else:
+                        pass
+
+
+                #==============================================================#
+                #                           Case ???:                          #
+                #       Unknown update, fallback for invalid case matching     #
+                #==============================================================#
+                case _:
+                    #print ("Case ???: Unknown update - no matching case")
+                    pass
+
+            return {
+                "success": True,
+                "updated": chatbox_db
+            }
 
     except IntegrityError as psycopg_err:
         raise HTTPException(

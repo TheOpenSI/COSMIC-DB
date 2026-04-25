@@ -3,8 +3,10 @@ from pydantic import ConfigDict
 
 
 ### Type hints ###
-from uuid import UUID
-from pydantic.types import UUID7, AwareDatetime
+from pydantic.types import (
+    UUID7,
+    AwareDatetime
+)
 from ...types.json_schemas import ChatHistorySchema
 
 
@@ -19,7 +21,7 @@ To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
 class ChatboxPublic(ChatboxBase):
-    id:         UUID
+    id:         UUID7
     create_on:  AwareDatetime
 
 
