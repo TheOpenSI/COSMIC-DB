@@ -5,7 +5,6 @@ from sqlmodel import (
 )
 from sqlalchemy.schema import (
     PrimaryKeyConstraint,
-    UniqueConstraint,
     ForeignKeyConstraint
 )
 
@@ -15,21 +14,19 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid7
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
-    VARCHAR,
     Uuid
 )
 from typing import TYPE_CHECKING, Optional
 
 
 ### Internal modules ###
-from ..base_models import UserBase
+from ..base_models import ChatboxBase
 if TYPE_CHECKING:
     """
     This's to resolve circular import issues, take a look at:
     https://sqlmodel.tiangolo.com/tutorial/code-structure/#circular-imports
     """
-    from .roles import Roles
-    from .chatboxes import Chatboxes
+    from .users import Users
 
 
 
@@ -37,40 +34,26 @@ if TYPE_CHECKING:
 To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
-class Users(UserBase, table=True):
-    __tablename__: str = "users" # pyright: ignore
+class Chatboxes(ChatboxBase, table=True):
+    __tablename__: str = "chatboxes" # pyright: ignore
     __table_args__: tuple[
         PrimaryKeyConstraint,
-        UniqueConstraint,
         ForeignKeyConstraint
     ] = (
         PrimaryKeyConstraint(
             "id",
-            name="PK_USER_ID"
-        ),
-        UniqueConstraint(
-            "email",
-            name="UK_USER_EMAIL"
+            name="PK_CHATBOX_ID"
         ),
         ForeignKeyConstraint(
-            columns=["role_id"],
-            refcolumns=["roles.id"],
-            name="FK_USER_ROLE_ID",
+            columns=["user_id"],
+            refcolumns=["users.id"],
+            name="FK_CHATBOX_USER_ID",
             onupdate="CASCADE",
             ondelete="CASCADE",
             match="FULL"
         )
     )
 
-    email: str | None = Field(
-        default=None,
-        max_length=255,
-        nullable=True,
-        sa_type=VARCHAR(
-            length=255,
-            collation=None
-        ) # pyright: ignore
-    )
     id: UUID = Field(
         default_factory=(lambda: uuid7()),
         nullable=False,
@@ -88,16 +71,6 @@ class Users(UserBase, table=True):
     """
     https://sqlmodel.tiangolo.com/tutorial/relationship-attributes/
     """
-    role: Optional["Roles"] = Relationship(
-        back_populates="user"
+    user: Optional["Users"] = Relationship(
+        back_populates="chatboxes"
     )
-    chatboxes: list["Chatboxes"] = Relationship(
-        back_populates="user",
-        cascade_delete=True,
-        passive_deletes=True
-    )
-    # statistics: Optional["Statistics"] = Relationship(
-    #     back_populates="users",
-    #     cascade_delete=True,
-    #     passive_deletes=True
-    # )

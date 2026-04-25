@@ -14,6 +14,7 @@ from sqlalchemy.sql.sqltypes import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from ..types.api_responses.configurations import ConfigurationSchema
+from ..types.api_responses.chatboxes import ChatboxResponse
 
 
 ### Internal modules ###
@@ -82,6 +83,27 @@ class ConfigurationBase(SQLModel):
         ) # pyright: ignore
     )
     details: ConfigurationSchema = Field(
+        nullable=False,
+        sa_type=JSONB(
+            none_as_null=True,
+            astext_type=None
+        ) # pyright: ignore
+    )
+
+    
+class ChatboxBase(SQLModel):
+    user_id: UUID = Field(
+        nullable=False,
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
+        ) # pyright: ignore
+    )
+    name: str = Field(
+        max_length=256,
+        nullable=False,
+    )
+    details: ChatboxResponse = Field(
         nullable=False,
         sa_type=JSONB(
             none_as_null=True,
