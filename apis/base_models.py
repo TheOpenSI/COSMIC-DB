@@ -13,7 +13,7 @@ from sqlalchemy.sql.sqltypes import (
     Uuid
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from ..types.api_responses.configurations import ConfigurationResponse
+from ..types.api_responses.configurations import ConfigurationSchema
 
 
 ### Internal modules ###
@@ -81,7 +81,7 @@ class ConfigurationBase(SQLModel):
             collation=None
         ) # pyright: ignore
     )
-    details: ConfigurationResponse = Field(
+    details: ConfigurationSchema = Field(
         nullable=False,
         sa_type=JSONB(
             none_as_null=True,

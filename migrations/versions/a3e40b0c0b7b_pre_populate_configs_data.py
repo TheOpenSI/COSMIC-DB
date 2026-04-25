@@ -5,13 +5,24 @@ Revises: 8e266617f204
 Create Date: 2026-04-20 19:37:59.722834
 
 """
-from typing import Any, Sequence, Union
-from uuid import UUID, uuid7
+from typing import (
+    Any,
+    Sequence,
+    Union
+)
+from uuid import (
+    UUID,
+    uuid7
+)
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
-from datetime import datetime, timezone
-from sqlmodel import SQLModel
+from datetime import (
+    datetime,
+    timezone
+)
+from sqlalchemy.orm.session import Session
+from pydantic import BaseModel
 from cores.db import cosmic_db_configs
 
 
@@ -28,7 +39,7 @@ depends_on: Union[str, Sequence[str], None] = None
 # Validate JSON column with Pydantic, copied from the `types/api_responses`   #
 # directory due to how Alembic works                                          #
 #=============================================================================#
-class ChessServiceOptions(SQLModel):
+class ChessServiceOptions(BaseModel):
     """docstring for ChessServiceOptions."""
     # TODO:
     # This need to be defined and stored from an external mounted volume data
@@ -37,8 +48,8 @@ class ChessServiceOptions(SQLModel):
     executable_path: str = "/app/bin/"
 
 
-class MemoryServiceOptions(SQLModel):
-    """docstring for ChessServiceOptions."""
+class MemoryServiceOptions(BaseModel):
+    """docstring for MemoryServiceOptions."""
     # TODO:
     # This need to be defined and stored from an external mounted volume data
     # that's related to vector database container. After a PR for this create
@@ -46,8 +57,8 @@ class MemoryServiceOptions(SQLModel):
     vector_db_path: str = "/app/qdrant/"
 
 
-class CodeGenerationServiceOptions(SQLModel):
-    """docstring for ChessServiceOptions."""
+class CodeGenerationServiceOptions(BaseModel):
+    """docstring for CodeGenerationServiceOptions."""
     top_k:                      int     = 10
     retrieve_score_threshold:   float   = 0.7
     # TODO:
@@ -57,13 +68,13 @@ class CodeGenerationServiceOptions(SQLModel):
     vector_db_path:             str     = "/app/qdrant/"
 
 
-class GeneralQuestionServiceOptions(SQLModel):
-    """docstring for GeneralQuestionServiceOptions."""
+class GeneralQuestionAnsweringServiceOptions(BaseModel):
+    """docstring for GeneralQuestionAnsweringServiceOptions."""
     # No extra options needed for this service.
     pass
 
 
-class AcademicGovernanceServiceOptions(SQLModel):
+class AcademicGovernanceServiceOptions(BaseModel):
     """docstring for AcademicGovernanceServiceOptions."""
     # No extra options needed for this service.
     pass
@@ -72,16 +83,17 @@ class AcademicGovernanceServiceOptions(SQLModel):
 # Custom type declaration needed for able to use it as type-hint at compile
 # time. For reference:
 # https://docs.python.org/3/reference/simple_stmts.html#type
-type ServiceOptions =                       \
-    ChessServiceOptions                 |   \
-    MemoryServiceOptions                |   \
-    CodeGenerationServiceOptions        |   \
-    GeneralQuestionServiceOptions       |   \
-    AcademicGovernanceServiceOptions    |   \
+type ServiceOptions = (
+    ChessServiceOptions                     |
+    MemoryServiceOptions                    |
+    CodeGenerationServiceOptions            |
+    GeneralQuestionAnsweringServiceOptions  |
+    AcademicGovernanceServiceOptions        |
     dict[None, None]
+)
 
 
-class GeneralConfigs(SQLModel):
+class GeneralConfigs(BaseModel):
     """docstring for GeneralConfigs."""
     provider:               str         = "ollama"
     model:                  str         = "qwen3.5:9b"
@@ -109,17 +121,17 @@ class QueryAnalyserConfigs(GeneralConfigs):
 
 
 
-class ServicesConfigs(SQLModel):
+class ServicesConfigs(BaseModel):
     """docstring for ServicesConfigs."""
-    name: str
-    option: ServiceOptions | None = {}
+    name:   str
+    option: ServiceOptions | dict[None, None] = {}
 
 
-class ConfigurationResponse(SQLModel):
-    """docstring for GeneralConfigs."""
+class ConfigurationSchema(BaseModel):
+    """docstring for ConfigurationSchema."""
     general:        GeneralConfigs
     query_analyser: QueryAnalyserConfigs
-    services:       list[ServicesConfigs] = []
+    services:       list[ServicesConfigs] | list[None] = []
 
 
 
@@ -132,12 +144,58 @@ def upgrade() -> None:
     configs_table: sa.Table = op.create_table(
         'configurations',
         sa.Column('id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
-        sa.Column('name', sa.TEXT(length=None, collation=None), autoincrement=False, nullable=False),
+        sa.Column('name', sa.TEXT(length=None, collation=None), autoincrement=False, nullable=True),
         sa.Column('details', JSONB(none_as_null=True,astext_type=None), autoincrement=False, nullable=False),
         sa.Column('create_on', sa.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_CONFIGURATION_ID')),
         if_not_exists=True
     )
+
+    # Temporary create a connection to database to get populated data from
+    # `Services` table
+    configs_bind: sa.Connection = op.get_bind()
+
+    with Session(bind=configs_bind) as session:
+        # Temporary define a minimal version of `Services` db table for querying.
+        # This ensures the called column remains immutable even if the models
+        # change later on
+        services_minimal_table: sa.Table = sa.Table(
+            'services',
+            sa.MetaData(),
+            sa.Column(
+                'name',
+                sa.VARCHAR(
+                    length=100,
+                    collation=None
+                ),
+                autoincrement=False,
+                nullable=False
+            ),
+            autoload_with=configs_bind
+        )
+        services_stmt: sa.Select[tuple[Any]] = sa.select(services_minimal_table.c.name)
+        services_name: Sequence[Any] = session.scalars(statement=services_stmt).all()
+
+    # Dynamically build the needed value for `option` object in
+    # `ServicesConfigs()` class
+    services_configs: list[ServicesConfigs] | list[None] = []
+
+    for name in services_name:
+        # This might looks a bit confusing but essentially, it does this:
+        # 'code_generation' ==> 'Code_Generation' ==> 'CodeGenerationServiceOptions'
+        options_class_name: str = f"{name.title().replace("_", "")}ServiceOptions"
+        options_class: str | None = globals().get(options_class_name)
+
+        option: ServiceOptions | dict[None, None] = options_class()  \
+            if options_class                                         \
+            else {}
+
+        services_configs.append(
+            ServicesConfigs(
+                name=name,
+                option=option
+            )
+        )
 
     # Define data to pre-populate to 'Configurations' table
     configs_data: list[dict[str, UUID | str | dict[str, Any] | datetime]] = [
@@ -146,32 +204,11 @@ def upgrade() -> None:
             'name': 'Default Configuration',
             # Need to use `model_dump()` method so Python can see the JSON data
             # as built-in dict type
-            'details': ConfigurationResponse(
+            'details': ConfigurationSchema(
                 general=GeneralConfigs(),
                 query_analyser=QueryAnalyserConfigs(),
-                services=[
-                    ServicesConfigs(
-                        name='chess',
-                        option=ChessServiceOptions()
-                    ),
-                    ServicesConfigs(
-                        name='memory',
-                        option=MemoryServiceOptions()
-                    ),
-                    ServicesConfigs(
-                        name='code_generation',
-                        option=CodeGenerationServiceOptions()
-                    ),
-                    ServicesConfigs(
-                        name='general_question_answering',
-                        option=GeneralQuestionServiceOptions()
-                    ),
-                    ServicesConfigs(
-                        name='academic_governance',
-                        option=AcademicGovernanceServiceOptions()
-                    )
-                ]
-            ).model_dump(),
+                services=services_configs
+            ).model_dump(mode="json", exclude_unset=False),
             'create_on': datetime.now(tz=timezone.utc)
         }
     ]
