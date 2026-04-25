@@ -30,7 +30,7 @@ class ChatboxPublicWithUser(ChatboxPublic):
 
 
 class ChatboxCreate(ChatboxBase):
-    model_config = ConfigDict(extra="forbid") # pyright: ignore
+    model_config = ConfigDict(extra="forbid")           # pyright: ignore
 
     pass
 
@@ -41,3 +41,8 @@ class ChatboxUpdate(ChatboxBase):
     user_id:    UUID7 | None                    = None  # pyright: ignore
     name:       str | None                      = None  # pyright: ignore
     details:    list[ChatHistorySchema] | None  = None  # pyright: ignore
+
+
+class ChatboxDelete(ChatboxBase):
+    id:         UUID7
+    create_on:  AwareDatetime

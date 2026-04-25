@@ -8,7 +8,8 @@ from pydantic import BaseModel
 ### Internal modules ###
 from ...apis.data_models.chatboxes import (
     ChatboxPublic,
-    ChatboxPublicWithUser
+    ChatboxPublicWithUser,
+    ChatboxDelete
 )
 
 
@@ -35,3 +36,8 @@ class ChatboxPublicResponse(BaseModel):
 class ChatboxUpdateResponse(BaseModel):
     success:    bool
     updated:    ChatboxPublic
+
+
+class ChatboxDeleteResponse(BaseModel):
+    success:    bool
+    deleted:    ChatboxDelete

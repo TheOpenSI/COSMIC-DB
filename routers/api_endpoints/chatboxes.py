@@ -33,7 +33,8 @@ from ...types.api_responses.chatboxes import (
     ChatboxesPublicResponse,
     ChatboxCreateResponse,
     ChatboxPublicResponse,
-    ChatboxUpdateResponse
+    ChatboxUpdateResponse,
+    ChatboxDeleteResponse
 )
 
 
@@ -511,3 +512,29 @@ async def update_chatbox_v1(
                 "message": f"{fastapi_err}"
             }
         )
+
+
+@chatboxes_v1_router.delete(
+    path="/{chatbox_session_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ChatboxDeleteResponse
+)
+async def delete_chatbox_v1(
+    chatbox_session_id: UUID7,
+    session: SessionDependency
+) -> Any:
+    chatbox_gone: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_session_id)
+
+    if chatbox_gone is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chatbox Not Found!"
+        )
+    else:
+        session.delete(instance=chatbox_gone)
+        session.commit()
+
+        return {
+            "success": True,
+            "deleted": chatbox_gone
+        }
