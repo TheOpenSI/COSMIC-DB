@@ -29,3 +29,7 @@ class ConfigurationCreateResponse(BaseModel):
 class ConfigurationPublicResponse(BaseModel):
     success:    bool
     result:     ConfigurationPublic
+
+class ConfigurationUpdateResponse(BaseModel):
+    success:    bool
+    updated:    ConfigurationPublic

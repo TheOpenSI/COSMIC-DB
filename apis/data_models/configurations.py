@@ -7,6 +7,7 @@ from pydantic.types import (
     UUID7,
     AwareDatetime
 )
+from ...types.json_schemas import ConfigurationSchema
 
 
 ### Internal modules ###
@@ -24,6 +25,13 @@ class ConfigurationPublic(ConfigurationBase):
 
 
 class ConfigurationCreate(ConfigurationBase):
-    model_config = ConfigDict(extra="forbid") # pyright: ignore
+    model_config = ConfigDict(extra="forbid")       # pyright: ignore
 
     pass
+
+
+class ConfigurationUpdate(ConfigurationBase):
+    model_config = ConfigDict(extra="forbid")       # pyright: ignore
+
+    name:       str | None                  = None  # pyright: ignore
+    details:    ConfigurationSchema | None  = None  # pyright: ignore

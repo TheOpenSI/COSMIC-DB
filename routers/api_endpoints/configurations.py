@@ -23,13 +23,15 @@ from fastapi.exceptions import ResponseValidationError
 from ...apis.table_models.configurations import Configurations
 from ...apis.data_models.configurations import (
     # For validation (Data Model)
-    ConfigurationCreate
+    ConfigurationCreate,
+    ConfigurationUpdate
 )
 from ...types.api_responses.configurations import (
     # For client responses (Responses Model)
     ConfigurationsPublicResponse,
     ConfigurationCreateResponse,
-    ConfigurationPublicResponse
+    ConfigurationPublicResponse,
+    ConfigurationUpdateResponse
 )
 
 
@@ -173,4 +175,47 @@ async def read_config_v1(
         return {
             "success": True,
             "result": config_view
+        }
+
+
+@configs_v1_router.patch(
+    path="/{config_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ConfigurationUpdateResponse
+)
+async def update_config_v1(
+    config_id: UUID7,
+    config: ConfigurationUpdate,
+    session: SessionDependency
+) -> Any:
+    config_db: Configurations | None = session.get(entity=Configurations, ident=config_id)
+
+    if config_db is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Configuration Not Found!"
+        )
+    else:
+        config_data: dict[str, Any] = config.model_dump(mode="json", exclude_unset=True)
+
+        # Case 1: simple data updates
+        if config_data["name"] is None:
+            # Update other data than service name
+            pass
+
+        else:
+            if config_data["name"] == config_db.name:
+                # Matching config name in stored config data
+                pass
+
+            else:
+                config_db.sqlmodel_update(obj=config_data)
+
+                session.add(instance=config_db)
+                session.commit()
+                session.refresh(instance=config_db)
+
+        return {
+            "success": True,
+            "updated": config_db
         }
