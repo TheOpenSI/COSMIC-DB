@@ -21,6 +21,11 @@ class ConfigurationsPublicResponse(BaseModel):
     result:     list[ConfigurationPublic]
 
 
+class ConfigurationCreateResponse(BaseModel):
+    success:    bool
+    created:    ConfigurationPublic
+
+
 class ConfigurationPublicResponse(BaseModel):
     success:    bool
     result:     ConfigurationPublic

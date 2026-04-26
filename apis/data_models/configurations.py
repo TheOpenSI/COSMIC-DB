@@ -1,4 +1,5 @@
 ### Core modules ###
+from pydantic import ConfigDict
 
 
 ### Type hints ###
@@ -20,3 +21,9 @@ https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multipl
 class ConfigurationPublic(ConfigurationBase):
     id:         UUID7
     create_on:  AwareDatetime
+
+
+class ConfigurationCreate(ConfigurationBase):
+    model_config = ConfigDict(extra="forbid") # pyright: ignore
+
+    pass
