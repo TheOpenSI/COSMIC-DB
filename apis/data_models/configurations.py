@@ -35,3 +35,8 @@ class ConfigurationUpdate(ConfigurationBase):
 
     name:       str | None                  = None  # pyright: ignore
     details:    ConfigurationSchema | None  = None  # pyright: ignore
+
+
+class ConfigurationDelete(ConfigurationBase):
+    id:         UUID7
+    create_on:  AwareDatetime

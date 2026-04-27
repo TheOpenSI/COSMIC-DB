@@ -7,7 +7,8 @@ from pydantic import BaseModel
 
 ### Internal modules ###
 from ...apis.data_models.configurations import (
-    ConfigurationPublic
+    ConfigurationPublic,
+    ConfigurationDelete
 )
 
 
@@ -33,3 +34,8 @@ class ConfigurationPublicResponse(BaseModel):
 class ConfigurationUpdateResponse(BaseModel):
     success:    bool
     updated:    ConfigurationPublic
+
+
+class ConfigurationDeleteResponse(BaseModel):
+    success:    bool
+    deleted:    ConfigurationDelete

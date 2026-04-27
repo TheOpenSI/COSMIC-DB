@@ -41,7 +41,8 @@ from ...types.api_responses.configurations import (
     ConfigurationsPublicResponse,
     ConfigurationCreateResponse,
     ConfigurationPublicResponse,
-    ConfigurationUpdateResponse
+    ConfigurationUpdateResponse,
+    ConfigurationDeleteResponse
 )
 
 
@@ -204,7 +205,8 @@ async def read_config_v1(
 @configs_v1_router.patch(
     path="/{config_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ConfigurationUpdateResponse
+    response_model=ConfigurationUpdateResponse,
+    responses=config_additional_responses
 )
 async def update_config_v1(
     config_id: UUID7,
@@ -471,3 +473,29 @@ async def update_config_v1(
                 "message": f"{fastapi_err}"
             }
         )
+
+
+@configs_v1_router.delete(
+    path="/{config_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ConfigurationDeleteResponse
+)
+async def delete_config_v1(
+    config_id: UUID7,
+    session: SessionDependency
+) -> Any:
+    config_gone: Configurations | None = session.get(entity=Configurations, ident=config_id)
+
+    if config_gone is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Configuration Not Found!"
+        )
+    else:
+        session.delete(instance=config_gone)
+        session.commit()
+
+        return {
+            "success": True,
+            "deleted": config_gone
+        }
