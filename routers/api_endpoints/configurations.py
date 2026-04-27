@@ -4,6 +4,7 @@ from fastapi import (
     HTTPException,
     status
 )
+from sqlalchemy.sql.expression import BinaryExpression, update
 from sqlmodel import select
 
 
@@ -196,7 +197,7 @@ async def update_config_v1(
             detail="Configuration Not Found!"
         )
     else:
-        config_data: dict[str, Any] = config.model_dump(mode="json", exclude_unset=True)
+        config_data: dict[str, Any] = config.model_dump(mode="json", exclude_unset=False)
 
         # Case 1: simple data updates
         if config_data["name"] is None:
@@ -214,6 +215,96 @@ async def update_config_v1(
                 session.add(instance=config_db)
                 session.commit()
                 session.refresh(instance=config_db)
+
+        # Case 2: complex data updates (JSONB data)
+        if config_data["details"] is None:
+            # Update other data than service option
+            pass
+
+        else:
+            new_general_config:         dict[str, Any] = config_data["details"]["general"]
+            new_query_analyser_config:  dict[str, Any] = config_data["details"]["query_analyser"]
+
+            old_general_config:         dict[str, Any] = config_db.details["general"]           # pyright: ignore
+            old_query_analyser_config:  dict[str, Any] = config_db.details["query_analyser"]    # pyright: ignore
+
+            diff_config_data = {}
+
+            # Case 2a: simple dict updates within complex data
+            if new_general_config == old_general_config:
+                print("Same general config data found...")
+
+            else:
+                diff_general_config: dict[str, Any] = {
+                    key: value
+                    for (key, value) in new_general_config.items()
+                    if value != old_general_config[key]
+                }
+
+                if len(diff_general_config) == 0:
+                    pass
+
+                else:
+                    print(f"General config differences: {diff_general_config}")
+                    update_general_config: dict[BinaryExpression, Any] = {
+                        Configurations.details["general"][key]: value # pyright: ignore
+                        for key, value in diff_general_config.items()
+                    }
+
+                    config_stmt = (
+                        update(table=Configurations)
+                        .where(Configurations.id == config_id) # pyright: ignore
+                        .values(update_general_config)
+                        .returning(Configurations)
+                    )
+                    session.exec(statement=config_stmt)
+                    session.commit()
+
+                    diff_config_data.setdefault(
+                        "details",
+                        {}
+                    )["general"] = diff_general_config
+
+            if config_data["details"]["query_analyser"] == config_db.details["query_analyser"]:
+                print("Same query analyser config data found...")
+
+            else:
+                diff_query_analyser_config: dict[str, Any] = {
+                    key: value
+                        for (key, value) in new_query_analyser_config.items()
+                    if value != old_query_analyser_config[key]
+                }
+
+                if len(diff_query_analyser_config) == 0:
+                    pass
+
+                else:
+                    print(f"Query Analyser config differences: {diff_query_analyser_config}")
+                    update_query_analyser_config: dict[BinaryExpression, Any] = {
+                        Configurations.details["query_analyser"][key]: value # pyright: ignore
+                        for key, value in diff_query_analyser_config.items()
+                    }
+
+                    config_stmt = (
+                        update(table=Configurations)
+                        .where(Configurations.id == config_id) # pyright: ignore
+                        .values(update_query_analyser_config)
+                        .returning(Configurations)
+                    )
+                    session.exec(statement=config_stmt)
+                    session.commit()
+
+                    diff_config_data.setdefault(
+                        "details",
+                        {}
+                    )["query_analyser"] = diff_query_analyser_config
+
+            # Case 2b: complex list of dict updates within complex data
+            if config_data["details"]["services"] == config_db.details["services"]:
+                print("Same services config data found...")
+
+            if diff_config_data is not None:
+                print(f"New config for update: {diff_config_data}")
 
         return {
             "success": True,

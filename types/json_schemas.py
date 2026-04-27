@@ -128,6 +128,6 @@ class ConfigurationSchema(BaseModel):
     """docstring for ConfigurationSchema."""
     model_config = ConfigDict(extra="forbid")
 
-    general:        GeneralConfigs | None
-    query_analyser: QueryAnalyserConfigs | None
-    services:       list[ServicesConfigs] | list[None] = []
+    general:        GeneralConfigs
+    query_analyser: QueryAnalyserConfigs
+    services:       list[ServicesConfigs] = []
