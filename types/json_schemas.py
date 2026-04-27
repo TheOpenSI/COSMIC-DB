@@ -130,4 +130,4 @@ class ConfigurationSchema(BaseModel):
 
     general:        GeneralConfigs
     query_analyser: QueryAnalyserConfigs
-    services:       list[ServicesConfigs] = []
+    services:       list[ServicesConfigs | None] = []
