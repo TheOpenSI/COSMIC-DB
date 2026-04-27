@@ -4,7 +4,10 @@ from fastapi import (
     HTTPException,
     status
 )
-from sqlalchemy.sql.expression import BinaryExpression, update
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql.dml import Update
+from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy.sql.expression import func, update
 from sqlmodel import select
 
 
@@ -222,11 +225,13 @@ async def update_config_v1(
             pass
 
         else:
-            new_general_config:         dict[str, Any] = config_data["details"]["general"]
-            new_query_analyser_config:  dict[str, Any] = config_data["details"]["query_analyser"]
+            new_general_config:         dict[str, Any]                          = config_data["details"]["general"]
+            new_query_analyser_config:  dict[str, Any]                          = config_data["details"]["query_analyser"]
+            new_services_config:        list[dict[str, Any] | dict[None, None]] = config_data["details"]["services"]
 
-            old_general_config:         dict[str, Any] = config_db.details["general"]           # pyright: ignore
-            old_query_analyser_config:  dict[str, Any] = config_db.details["query_analyser"]    # pyright: ignore
+            old_general_config:         dict[str, Any]                          = config_db.details["general"]          # pyright: ignore
+            old_query_analyser_config:  dict[str, Any]                          = config_db.details["query_analyser"]   # pyright: ignore
+            old_services_config:        list[dict[str, Any] | dict[None, None]] = config_db.details["services"]         # pyright: ignore
 
             diff_config_data = {}
 
@@ -265,7 +270,7 @@ async def update_config_v1(
                         {}
                     )["general"] = diff_general_config
 
-            if config_data["details"]["query_analyser"] == config_db.details["query_analyser"]:
+            if new_query_analyser_config == old_query_analyser_config:
                 print("Same query analyser config data found...")
 
             else:
@@ -285,7 +290,7 @@ async def update_config_v1(
                         for key, value in diff_query_analyser_config.items()
                     }
 
-                    config_stmt = (
+                    config_stmt: Update = (
                         update(table=Configurations)
                         .where(Configurations.id == config_id) # pyright: ignore
                         .values(update_query_analyser_config)
@@ -300,8 +305,52 @@ async def update_config_v1(
                     )["query_analyser"] = diff_query_analyser_config
 
             # Case 2b: complex list of dict updates within complex data
-            if config_data["details"]["services"] == config_db.details["services"]:
+            if new_services_config == old_services_config:
                 print("Same services config data found...")
+
+            else:
+                # Sub-case 2b: add services
+                if len(new_services_config) > len(old_services_config):
+                    print("Add services detected...")
+                    diff_services_config: BinaryExpression = Configurations.details["services"] # pyright: ignore
+
+                    # NOTE:
+                    # This might be hard to read because we're trying to be
+                    # dynamic by leverage the type check from ORM for running SQL
+                    # query. This code (in SQL syntax) is:
+                    #   UPDATE
+                    #       configurations
+                    #   SET
+                    #       details['services'] = details['services']::JSONB || [new_services_config]::JSONB
+                    #   WHERE
+                    #       configurations.id = config_id
+                    #   RETURNING
+                    #       configurations.name,
+                    #       configurations.details,
+                    #       configurations.id,
+                    #       configurations.create_on
+                    config_stmt: Update = (
+                        update(table=Configurations)
+                        .where(Configurations.id == config_id) # pyright: ignore
+                        .values(
+                            {diff_services_config: (func.cast(diff_services_config, JSONB)).op("||")(func.cast(new_services_config, JSONB))} # pyright: ignore
+                        )
+                        .returning(Configurations)
+                    )
+                    session.exec(statement=config_stmt)
+                    session.commit()
+
+                    diff_config_data.setdefault(
+                        "details",
+                        {}
+                    )["services"] = new_services_config
+
+                # Sub-case 2b: remove services
+                if len(new_services_config) < len(old_services_config):
+                    print("Remove services detected...")
+
+                # Sub-case 2b: modify services
+
 
             if diff_config_data is not None:
                 print(f"New config for update: {diff_config_data}")
