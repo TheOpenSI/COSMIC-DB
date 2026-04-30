@@ -57,6 +57,19 @@ chatboxes_v1_router: APIRouter = APIRouter(
 
 
 chatbox_additional_responses: dict[int | str, dict[str, Any]] = {
+    400: {
+        "description": "Value Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "400: Bad Request",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
     409: {
         "description": "Integrity Error",
         "content": {
