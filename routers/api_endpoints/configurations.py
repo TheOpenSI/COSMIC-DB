@@ -6,10 +6,7 @@ from fastapi import (
 )
 from sqlmodel import select
 from sqlalchemy.sql.dml import Update
-from sqlalchemy.sql.expression import (
-    func,
-    update
-)
+from sqlalchemy.sql.expression import update
 
 
 ### Type hints ###
@@ -22,11 +19,7 @@ from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import ResponseValidationError
-from sqlalchemy.sql.elements import (
-    BinaryExpression,
-    ColumnElement
-)
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql.elements import ColumnElement
 
 
 ### Internal modules ###
@@ -221,226 +214,136 @@ async def update_config_v1(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Configuration Not Found!"
             )
+
         else:
-            config_data: dict[str, Any] = config.model_dump(mode="json", exclude_unset=False)
+            config_data: dict[str, Any] = config.model_dump(mode="json", exclude_unset=True)
+
+            # Case 1: full data updates
+            if all(key in config_data for key in ("name", "details")):
+                config_name:    str                         = config_data["name"]
+                config_details: dict[str, dict[str, Any]]   = config_data["details"]
+
+                config_db.name      = config_name
+                config_db.details   = config_details # pyright: ignore
+
+                session.add(instance=config_db)
+                session.commit()
+                session.refresh(instance=config_db)
 
 
-            # Case 1: simple data updates
-            if config_data["name"] is None:
-                # Update other data than service name
-                pass
-
+            # Case 2: partial data updates
             else:
-                if config_data["name"] == config_db.name:
-                    # Matching config name in stored config data
-                    pass
+                # Case 2a: partial data updates (config name)
+                if "name" in config_data:
+                    config_name: str = config_data["name"]
+
+                    if config_name == config_db.name:
+                        # Incoming data matched stored data so no need to
+                        # waste disk I/O for running update on nothing
+                        pass
+
+                    else:
+                        config_db.sqlmodel_update(obj=config_data)
+
+                        session.add(instance=config_db)
+                        session.commit()
+                        session.refresh(instance=config_db)
 
                 else:
-                    config_db.sqlmodel_update(obj=config_data)
-
-                    session.add(instance=config_db)
-                    session.commit()
-                    session.refresh(instance=config_db)
-
-
-            # Case 2: complex data updates (JSONB data)
-            if config_data["details"] is None:
-                # Update other data than service option
-                pass
-
-            else:
-                new_general_config:         dict[str, Any]              = config_data["details"]["general"]
-                new_query_analyser_config:  dict[str, Any]              = config_data["details"]["query_analyser"]
-                new_services_config:        list[dict[str, Any] | None] = config_data["details"]["services"]
-
-                old_general_config:         dict[str, Any]              = config_db.details["general"]          # pyright: ignore
-                old_query_analyser_config:  dict[str, Any]              = config_db.details["query_analyser"]   # pyright: ignore
-                old_services_config:        list[dict[str, Any] | None] = config_db.details["services"]         # pyright: ignore
-
-
-                # Case 2a: simple dict updates within complex data (general config data)
-                if new_general_config == old_general_config:
-                    # Incoming data matched stored data so no need to waste disk I/O
-                    # for running update on nothing
+                    # Update other data than config name
                     pass
 
-                else:
-                    diff_general_config: dict[str, Any] = {
-                        key: value
-                        for (key, value) in new_general_config.items()
-                        if value != old_general_config[key]
-                    }
 
-                    update_general_config: dict[ColumnElement, Any] = {
-                        Configurations.details["general"][key]: value # pyright: ignore
-                        for key, value in diff_general_config.items()
-                    }
+                # Case 2b: partial data updates (config details)
+                if "details" in config_data:
+                    config_details:         dict[str, dict[str, Any]]   = config_data["details"]
 
-                    config_stmt: Update = (
-                        update(table=Configurations)
-                        .where(Configurations.id == config_id) # pyright: ignore
-                        .values(update_general_config)
-                        .returning(Configurations)
-                    )
-                    session.exec(statement=config_stmt)
-                    session.commit()
+                    general_config:         dict[str, Any]              = config_details["general"]
+                    query_analyser_config:  dict[str, Any]              = config_details["query_analyser"]
+
+                    new_config:             dict[ColumnElement, Any]    = {}
 
 
-                # Case 2a: simple dict updates within complex data (query analyser config data)
-                if new_query_analyser_config == old_query_analyser_config:
-                    # Incoming data matched stored data so no need to waste disk I/O
-                    # for running update on nothing
-                    pass
+                    # Sub-case 2b - Scenario 1:
+                    # General configs surgical updates
+                    if general_config == config_db.details["general"]: # pyright: ignore
+                        # Incoming data matched stored data so no need to
+                        # waste disk I/O for running update on nothing
+                        pass
 
-                else:
-                    diff_query_analyser_config: dict[str, Any] = {
-                        key: value
-                        for (key, value) in new_query_analyser_config.items()
-                        if value != old_query_analyser_config[key]
-                    }
-
-                    update_query_analyser_config: dict[ColumnElement, Any] = {
-                        Configurations.details["query_analyser"][key]: value # pyright: ignore
-                        for key, value in diff_query_analyser_config.items()
-                    }
-
-                    config_stmt: Update = (
-                        update(table=Configurations)
-                        .where(Configurations.id == config_id) # pyright: ignore
-                        .values(update_query_analyser_config)
-                        .returning(Configurations)
-                    )
-                    session.exec(statement=config_stmt)
-                    session.commit()
+                    else:
+                        for (key, value) in general_config.items():
+                            if value != config_db.details["general"][key]: # pyright: ignore
+                                new_config[Configurations.details["general"][key]] = value # pyright: ignore
 
 
-                # Case 2b: complex list of dict updates within complex data
-                if new_services_config == old_services_config:
-                    # Incoming data matched stored data so no need to waste disk I/O
-                    # for running update on nothing
-                    pass
+                    # Sub-case 2b - Scenario 2:
+                    # Query Analyser configs surgical updates
+                    if query_analyser_config == config_db.details["query_analyser"]: # pyright: ignore
+                        # Incoming data matched stored data so no need to
+                        # waste disk I/O for running update on nothing
+                        pass
 
-                else:
-                    diff_services_config: BinaryExpression = Configurations.details["services"] # pyright: ignore
+                    else:
+                        for (key, value) in query_analyser_config.items():
+                            if value != config_db.details["query_analyser"][key]: # pyright: ignore
+                                new_config[Configurations.details["query_analyser"][key]] = value # pyright: ignore
 
 
-                    # Sub-case 2b: add services
-                    if len(new_services_config) > len(old_services_config):
+                    #TODO: some sort of `verbose` argument toggle for debug only
+                    #print(
+                    #    "{head_sep:s}{body_msg:s}{foot_sep:s}".format(
+                    #        head_sep=f"{'=' * 80}\n",
+                    #        body_msg="[DEBUG]   UPDATE DEFAULT CONFIG DATA\n",
+                    #        foot_sep=f"{'=' * 80}\n"
+                    #    )
+                    #)
+                    #pp(
+                    #    object=new_config,
+                    #    stream=stdout,
+                    #    indent=4 # Prefer tab over spaces indentation
+                    #)
+
+                    if len(new_config) == 0:
+                        # Two scenarios can occured here:
+                        # 1. Incoming data completely matched stored data
+                        # => Do nothing. We don't want to waste disk
+                        #    I/O for update with zero changes.
+                        #
+                        # 2. Something's rising and it isn't the shield hero...
+                        # => Kindly ask user to submit a bug report
+                        #    to us so we can investigate this as I
+                        #    cannot think of one op top of my head.
+                        pass
+
+                    else:
                         # NOTE:
-                        # This might be hard to read because we're trying to be
-                        # dynamic by leverage the type check from ORM for running SQL
-                        # query. This code (in SQL syntax) is:
+                        # This might be hard to read because we're trying
+                        # to be dynamic by leverage the type check from
+                        # ORM for running SQL query. This code (in SQL
+                        # syntax) is:
                         #   UPDATE
                         #       configurations
                         #   SET
-                        #       details['services'] = details['services']::JSONB || [new_services_config]::JSONB
+                        #       configurations['details'][config_type][current key] = <new value>
                         #   WHERE
                         #       configurations.id = config_id
                         #   RETURNING
+                        #       configurations.user_id,
                         #       configurations.name,
-                        #       configurations.details,
-                        #       configurations.id,
-                        #       configurations.create_on
+                        #       configurations.details
                         config_stmt: Update = (
                             update(table=Configurations)
                             .where(Configurations.id == config_id) # pyright: ignore
-                            .values({
-                                diff_services_config: (func.cast(diff_services_config, JSONB)).op("||")(func.cast(new_services_config, JSONB)) # pyright: ignore
-                            })
+                            .values(new_config)
                             .returning(Configurations)
                         )
                         session.exec(statement=config_stmt)
                         session.commit()
 
-
-                    # Sub-case 2b: remove services
-                    elif len(new_services_config) < len(old_services_config):
-                        # NOTE:
-                        # This might be hard to read because we're trying to be
-                        # dynamic by leverage the type check from ORM for running SQL
-                        # query. This code (in SQL syntax) is:
-                        #   UPDATE
-                        #       configurations
-                        #   SET
-                        #       details['services'] = [new_services_config]::JSONB
-                        #   WHERE
-                        #       configurations.id = config_id
-                        #   RETURNING
-                        #       configurations.name,
-                        #       configurations.details,
-                        #       configurations.id,
-                        #       configurations.create_on
-                        config_stmt: Update = (
-                            update(table=Configurations)
-                            .where(Configurations.id == config_id) # pyright: ignore
-                            .values({
-                                diff_services_config: func.cast(new_services_config, JSONB) # pyright: ignore
-                            })
-                        )
-                        session.exec(statement=config_stmt)
-                        session.commit()
-
-
-                    # Sub-case 2b: modify services (only trigger if there is/are
-                    # services enabled)
-                    else:
-                        # Service name CANNOT be modifed
-                        forbid_services_config: list[str] = [
-                            f"{old_service_config["name"]} --> {new_service_config["name"]}" # pyright: ignore
-                            for (old_service_config, new_service_config) in zip(old_services_config, new_services_config)
-                            if old_service_config["name"] != new_service_config["name"] # pyright: ignore
-                        ]
-
-                        if len(forbid_services_config) > 0:
-                            raise HTTPException(
-                                status_code=status.HTTP_400_BAD_REQUEST,
-                                detail={
-                                    "status": "400 - Bad Request",
-                                    "message": "Service name update forbidden: {forbid:s}".format(
-                                        forbid=f"{', '.join(forbid_services_config)}"
-                                    )
-                                }
-                            )
-                        else:
-                            permit_services_config: dict[ColumnElement, dict[str, Any]] = {}
-
-                            for (
-                                idx_service_config,
-                                (old_service_config, new_service_config)
-                            ) in enumerate(
-                                iterable=zip(
-                                    old_services_config,
-                                    new_services_config
-                                ),
-                                start=0
-                            ):
-                                # Service option CAN be modifed
-                                if new_service_config["option"] != old_service_config["option"]: # pyright: ignore
-                                    surgical_services_update: ColumnElement = diff_services_config[idx_service_config]["option"]
-                                    permit_services_config[surgical_services_update] = new_service_config["option"] # pyright: ignore
-
-                            # NOTE:
-                            # This might be hard to read because we're trying to be
-                            # dynamic by leverage the type check from ORM for running SQL
-                            # query. This code (in SQL syntax) is:
-                            #   UPDATE
-                            #       configurations
-                            #   SET
-                            #       details['services'][index][option][<specific key>] = <new value>
-                            #   WHERE
-                            #       configurations.id = config_id
-                            #   RETURNING
-                            #       configurations.name,
-                            #       configurations.details,
-                            #       configurations.id,
-                            #       configurations.create_on
-                            config_stmt: Update = (
-                                update(table=Configurations)
-                                .where(Configurations.id == config_id) # pyright: ignore
-                                .values(permit_services_config)
-                            )
-                            session.exec(statement=config_stmt)
-                            session.commit()
+                else:
+                    # Update other data than config details
+                    pass
 
             return {
                 "success": True,
