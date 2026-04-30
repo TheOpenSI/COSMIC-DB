@@ -16,7 +16,10 @@ from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
     Uuid
 )
-from typing import TYPE_CHECKING, Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional
+)
 
 
 ### Internal modules ###
