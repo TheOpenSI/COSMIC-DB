@@ -1,4 +1,9 @@
 ### Core modules ###
+from datetime import datetime
+from uuid import (
+    UUID,
+    SafeUUID
+)
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -6,6 +11,12 @@ from fastapi import (
 )
 from sqlalchemy.sql.expression import update
 from sqlmodel import select
+from httpx import (
+    AsyncClient,
+    ConnectError,
+    ConnectTimeout,
+    Response
+)
 
 
 ### Type hints ###
@@ -19,6 +30,7 @@ from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import ResponseValidationError
 from sqlalchemy.sql.expression import Update
+from sqlalchemy.sql.elements import ColumnElement
 
 
 ### Internal modules ###
@@ -295,191 +307,285 @@ async def read_chatbox_v1(
 )
 async def update_chatbox_v1(
     chatbox_session_id: UUID7,
-    chat_history: ChatboxUpdate,
+    chatbox: ChatboxUpdate,
     session: SessionDependency
 ) -> Any:
     try:
         chatbox_db: Chatboxes | None = session.get(entity=Chatboxes, ident=chatbox_session_id)
 
-        # Step 1:
-        # Make sure chat session exists based on provided UUID
         if chatbox_db is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chatbox Not Found!"
             )
 
-        # Step 2:
-        # Chat session found, determine which kind of update are we going to perform:
-        # 1. Full update
-        # 2. Partial update
-        #   2.1. Simple column data (e.g., name)
-        #   2.2. Complex column data (e.g., details)
-        #       2.2.1. Full JSON data (works like a full update)
-        #       2.2.2. Partial JSON data (works like a partial update)
-        # TODO:
-        # I added ref here but this need to go to the right place:
-        # 1. https://www.postgresql.org/docs/current/functions-json.html (`||` operator on JSOB column)
-        # 2. https://docs.sqlalchemy.org/en/20/core/sqlelement.html#sqlalchemy.sql.expression.ColumnOperators.op (directly UPDATE statment with `||` operator)
         else:
-            chatbox_data: dict[str, Any] = chat_history.model_dump(mode="json", exclude_unset=True)
+            chatbox_data: dict[str, Any] = chatbox.model_dump(mode="json", exclude_unset=True)
 
-            match chatbox_data:
-                #==============================================================#
-                #                           Case 1:                            #
-                #                           Full update                        #
-                #==============================================================#
-                case {
-                    "user_id": user_id,
-                    "name": user_name,
-                    "details": user_chat_history
-                }:
-                    #print("Case 1: Full update - replace everything")
-                    chatbox_prep_data: dict[str, Any] = {}
+            # Case 1: full data updates
+            if all(key in chatbox_data for key in ("user_id", "name", "details")):
+                chatbox_user_id:    str                     = chatbox_data["user_id"]
+                chatbox_name:       str                     = chatbox_data["name"]
+                chatbox_details:    list[dict[str, Any]]    = chatbox_data["details"]
 
-                    if (str(chatbox_db.user_id) != user_id):
-                        chatbox_prep_data["user_id"] = user_id
+                # NOTE:
+                # It's much more safe and accurate to compare UUID value in its
+                # original form (UUID Object). The compiler will now understand
+                # that we're matching them in chronological logic instead.
+                if UUID(
+                    hex=chatbox_user_id,
+                    version=7,
+                    is_safe=SafeUUID.safe
+                ) != chatbox_db.user_id:
+                    # We CANNOT change specified chatbox ownership
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "status": "400 - Bad Request",
+                            "message": "{trig:s}: {cond:s}".format(
+                                trig="Chatbox update forbidden",
+                                cond=f"Chatbox ownership (user ID) cannot be updated: {chatbox_db.user_id} --> {chatbox_user_id}"
+                            )
+                        }
+                    )
+
+                else:
+                    chatbox_db.name     = chatbox_name
+                    chatbox_db.details  = chatbox_details # pyright: ignore
+
+                    session.add(instance=chatbox_db)
+                    session.commit()
+                    session.refresh(instance=chatbox_db)
+
+            # Case 2: partial data updates
+            else:
+                if "user_id" in chatbox_data:
+                    chatbox_user_id: str = chatbox_data["user_id"]
+                    # NOTE:
+                    # It's much more safe and accurate to compare UUID value in its
+                    # original form (UUID Object). The compiler will now understand
+                    # that we're matching them in chronological logic instead.
+                    if UUID(
+                        hex=chatbox_user_id,
+                        version=7,
+                        is_safe=SafeUUID.safe
+                    ) != chatbox_db.user_id:
+                        # We CANNOT change specified chatbox ownership
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail={
+                                "status": "400 - Bad Request",
+                                "message": "{trig:s}: {cond:s}".format(
+                                    trig="Chatbox update forbidden",
+                                    cond=f"Chatbox ownership (user ID) cannot be updated: {chatbox_db.user_id} --> {chatbox_user_id}"
+                                )
+                            }
+                        )
 
                     else:
-                        # Incoming data matched stored data, skipping.
-                        pass
+                        # Case 2a: partial data updates (chatbox name)
+                        if "name" in chatbox_data:
+                            chatbox_name: str = chatbox_data["name"]
 
-                    if (str(chatbox_db.name) != user_name):
-                        chatbox_prep_data["name"] = user_name
+                            if chatbox_name == chatbox_db.name:
+                                # Incoming data matched stored data so no need to
+                                # waste disk I/O for running update on nothing
+                                pass
 
-                    else:
-                        # Incoming data matched stored data, skipping.
-                        pass
+                            else:
+                                # NOTE:
+                                # We didn't use `sqlmodel_update()` method here since
+                                # specified chatbox ownership cannot be modified, but
+                                # we still have to provide the `user_id` data, which
+                                # this method will execute surgical update on BOTH
+                                # `user_id` & `name` data.
+                                chatbox_db.name = chatbox_name # pyright: ignore
 
-                    if (chatbox_db.details != user_chat_history):
-                        if any(new_chat_history not in chatbox_db.details for new_chat_history in user_chat_history):
-                            # NOTE: only for type-hint purposes, no actual effect to the logic
-                            new_chat_history: dict[str, Any]
-                            chatbox_prep_data["details"] = Chatboxes.details.op("||")(user_chat_history) # pyright: ignore
+                                session.add(instance=chatbox_db)
+                                session.commit()
+                                session.refresh(instance=chatbox_db)
 
                         else:
-                            # Incoming JSON data matched stored JSON data, skipping.
+                            # Update other data than chatbox name
                             pass
 
-                    else:
-                        # Incoming data matched stored data, skipping.
-                        # NOTE:
-                        # This edge case only work when chat history size is
-                        # exactly one
-                        pass
+                        # Case 2b: partial data updates (chatbox details)
+                        if "details" in chatbox_data:
+                            # NOTE:
+                            # Endpoints calling from the same container doesn't need
+                            # to know the container service name
+                            roles_endpoint: str = "http://localhost:8000/api/v1/roles/"
+                            roles_timeout:  float = 10.0
 
-                    if chatbox_prep_data:
-                        chatbox_stmt: Update = (
-                            update(table=Chatboxes)
-                            .where(Chatboxes.id == chatbox_session_id)  # pyright: ignore
-                            .values(**chatbox_prep_data)                # pyright: ignore
-                            .returning(Chatboxes)
-                        )
-                        session.exec(statement=chatbox_stmt)
-                        session.commit()
+                            async with AsyncClient(
+                                base_url=roles_endpoint,
+                                timeout=roles_timeout
+                            ) as client:
+                                try:
+                                    roles_response: Response = await client.get(url="/")
+                                    roles_data: list[dict[str, Any]] = roles_response.json()["result"]
+                                    roles_name: list[str] = [
+                                        value
+                                        for role_data in roles_data
+                                        for (key, value) in role_data.items()
+                                        if "name" in key
+                                    ]
 
-                    else:
-                        # Incoming data matched stored data, skipping.
-                        # NOTE:
-                        # This edge case only work when all the check above
-                        # is false
-                        pass
+                                    new_chat_history: dict[ColumnElement, Any] = {}
 
+                                    # Sub-case 2b:
+                                    # Perform surgical updates (1 or more) in partial
+                                    # data update request
+                                    for (
+                                        chat_history_idx,
+                                        chat_history
+                                    ) in enumerate(
+                                        iterable=chatbox_data["details"],
+                                        start=0
+                                    ):
+                                        # Sub-case 2b - Scenario 1:
+                                        # User role surgical updates
+                                        chat_user_role:         str = chat_history["user_role"]
 
-                #==============================================================#
-                #                           Case 2A:                           #
-                #       Partial update, simple data only (either key provided) #
-                #==============================================================#
-                case {"user_id": user_id}           \
-                if   ("name" not in chatbox_data)   \
-                and  ("details" not in chatbox_data):
-                    #print("Case 2A: Partial update - simple data only (update new 'user_id' basic record)")
-                    if str(chatbox_db.user_id) == user_id:
-                        # Do nothing as the data matched
-                        pass
-
-                    else:
-                        chatbox_db.sqlmodel_update(obj=chatbox_data)
-
-                        session.add(instance=chatbox_db)
-                        session.commit()
-                        session.refresh(instance=chatbox_db)
-
-
-                #==============================================================#
-                #                           Case 2B:                           #
-                #       Partial update, simple data only (either key provided) #
-                #==============================================================#
-                case {"name": user_name}                \
-                if   ("user_id" not in chatbox_data)    \
-                and  ("details" not in chatbox_data):
-                    #print("Case 2B: Partial update - simple data only (update new 'name' basic record)")
-                    if str(chatbox_db.name) == user_name:
-                        # Do nothing as the data matched
-                        pass
-
-                    else:
-                        chatbox_db.sqlmodel_update(obj=chatbox_data)
-
-                        session.add(instance=chatbox_db)
-                        session.commit()
-                        session.refresh(instance=chatbox_db)
+                                        if  (chat_user_role.capitalize() in roles_name) \
+                                        and (chat_user_role != chatbox_db.details[chat_history_idx]["user_role"]): # pyright: ignore
+                                            # To match role name format from called endpoint
+                                            new_chat_history[Chatboxes.details[chat_history_idx]["user_role"]] = chat_user_role.capitalize() # pyright: ignore
 
 
-                #==============================================================#
-                #                           Case 2C:                           #
-                #       Partial update, simple data only (all key provided)    #
-                #==============================================================#
-                case {"user_id": user_id, "name": user_name} \
-                if "details" not in chatbox_data:
-                    #print("Case 2C: Partial update - simple data only (update new basic record)")
-                    if  (str(chatbox_db.user_id) == user_id) \
-                    and (str(chatbox_db.name) == user_name):
-                        # Do nothing as the data matched
-                        pass
+                                        # Sub-case 2b - Scenario 2:
+                                        # LLM role surgical updates
+                                        chat_llm_role:          str = chat_history["llm_role"]
 
-                    else:
-                        chatbox_db.sqlmodel_update(obj=chatbox_data)
-
-                        session.add(instance=chatbox_db)
-                        session.commit()
-                        session.refresh(instance=chatbox_db)
+                                        if  (chat_llm_role.capitalize() in roles_name) \
+                                        and (chat_llm_role != chatbox_db.details[chat_history_idx]["llm_role"]): # pyright: ignore
+                                            # To match role name format from called endpoint
+                                            new_chat_history[Chatboxes.details[chat_history_idx]["llm_role"]] = chat_llm_role.capitalize() # pyright: ignore
 
 
-                #==============================================================#
-                #                           Case 3:                            #
-                #       Partial update, complex data only (various scenarios)  #
-                #==============================================================#
-                case {"details": user_chat_history}     \
-                if   ("user_id" not in chatbox_data)    \
-                and  ("name" not in chatbox_data):
-                    # WARNING:
-                    # Later on when we eventually added the ability for user to
-                    # edit convo pairs, this check would need to be update as
-                    # well as the db schema.
+                                        # Sub-case 2b - Scenario 3:
+                                        # User query updates, which its timestamp
+                                        # must be updated as well to reflect accurate
+                                        # new changes
+                                        chat_user_query:        str = chat_history["user_query"]
+                                        chat_user_timestamp:    str = chat_history["query_create_on"]
 
-                    #print("Case 3: Partial update - complex data only (various scenarios)")
-                    if len(chatbox_db.details) >= 0:
-                        chatbox_stmt: Update = (
-                            update(table=Chatboxes)
-                            .where(Chatboxes.id == chatbox_session_id)                              # pyright: ignore
-                            .values(details=Chatboxes.details.op("||")(chatbox_data["details"]))    # pyright: ignore
-                            .returning(Chatboxes)
-                        )
-                        session.exec(statement=chatbox_stmt)
-                        session.commit()
+                                        if chat_user_query != chatbox_db.details[chat_history_idx]["user_query"]: # pyright: ignore
+                                            new_chat_history[Chatboxes.details[chat_history_idx]["user_query"]] = chat_user_query # pyright: ignore
 
-                    else:
-                        pass
+                                        if (
+                                            # NOTE:
+                                            # It's much more safe and accurate to
+                                            # compare timestamp value in its original
+                                            # form (datetime Object). The compiler
+                                            # will now understand that we're matching
+                                            # them in chronological logic instead.
+                                            datetime.fromisoformat(chat_user_timestamp) \
+                                            !=
+                                            datetime.fromisoformat(chatbox_db.details[chat_history_idx]["query_create_on"]) # pyright: ignore
+                                        ):
+                                            new_chat_history[Chatboxes.details[chat_history_idx]["query_create_on"]] = chat_user_timestamp # pyright: ignore
 
 
-                #==============================================================#
-                #                           Case ???:                          #
-                #       Unknown update, fallback for invalid case matching     #
-                #==============================================================#
-                case _:
-                    #print ("Case ???: Unknown update - no matching case")
-                    pass
+                                        # Sub-case 2b - Scenario 4:
+                                        # LLM response updates, which its timestamp
+                                        # must be updated as well to reflect accurate
+                                        # new changes
+                                        chat_llm_response:      str = chat_history["llm_response"]
+                                        chat_llm_timestamp:     str = chat_history["response_create_on"]
+
+                                        if chat_llm_response != chatbox_db.details[chat_history_idx]["llm_response"]: # pyright: ignore
+                                            new_chat_history[Chatboxes.details[chat_history_idx]["llm_response"]] = chat_llm_response # pyright: ignore
+
+                                        if (
+                                            # NOTE:
+                                            # It's much more safe and accurate to
+                                            # compare timestamp value in its original
+                                            # form (datetime Object). The compiler
+                                            # will now understand that we're matching
+                                            # them in chronological logic instead.
+                                            datetime.fromisoformat(chat_llm_timestamp) \
+                                            !=
+                                            datetime.fromisoformat(chatbox_db.details[chat_history_idx]["response_create_on"]) # pyright: ignore
+                                        ):
+                                            new_chat_history[Chatboxes.details[chat_history_idx]["response_create_on"]] = chat_llm_timestamp # pyright: ignore
+
+
+                                    #TODO: some sort of `verbose` argument toggle for debug only
+                                    #print(
+                                    #    "{head_sep:s}{body_msg:s}{foot_sep:s}".format(
+                                    #        head_sep=f"{'=' * 80}\n",
+                                    #        body_msg="[DEBUG]   UPDATE CHAT HISTORY DATA\n",
+                                    #        foot_sep=f"{'=' * 80}\n"
+                                    #    )
+                                    #)
+                                    #pp(
+                                    #    object=new_chat_history,
+                                    #    stream=stdout,
+                                    #    indent=4 # Prefer tab over spaces indentation
+                                    #)
+
+                                    if len(new_chat_history) == 0:
+                                        # Two scenarios can occured here:
+                                        # 1. Incoming data completely matched stored data
+                                        # => Do nothing. We don't want to waste disk
+                                        #    I/O for update with zero changes.
+                                        #
+                                        # 2. Something's rising and it isn't the shield hero...
+                                        # => Kindly ask user to submit a bug report
+                                        #    to us so we can investigate this as I
+                                        #    cannot think of one op top of my head.
+                                        pass
+
+                                    else:
+                                        # NOTE:
+                                        # This might be hard to read because we're trying
+                                        # to be dynamic by leverage the type check from
+                                        # ORM for running SQL query. This code (in SQL
+                                        # syntax) is:
+                                        #   UPDATE
+                                        #       chatboxes
+                                        #   SET
+                                        #       chatboxes['details'][chat_history_idx][current key] = <new value>
+                                        #   WHERE
+                                        #       chatboxes.id = chatbox_session_id
+                                        #   RETURNING
+                                        #       chatboxes.user_id,
+                                        #       chatboxes.name,
+                                        #       chatboxes.details
+                                        chatbox_stmt: Update = (
+                                            update(table=Chatboxes)
+                                            .where(Chatboxes.id == chatbox_session_id) # pyright: ignore
+                                            .values(new_chat_history)
+                                            .returning(Chatboxes)
+                                        )
+                                        session.exec(statement=chatbox_stmt)
+                                        session.commit()
+
+                                except ConnectError as httpx_err:
+                                    raise HTTPException(
+                                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        detail=f"{httpx_err}"
+                                    )
+
+                                except ConnectTimeout as httpx_err:
+                                    raise HTTPException(
+                                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        detail=f"{httpx_err}"
+                                    )
+
+                else:
+                    # We CANNOT update chatbox data without its ownership
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "status": "400 - Bad Request",
+                            "message": "{trig:s}: {cond:s}".format(
+                                trig="Chatbox update forbidden",
+                                cond="Chatbox ownership (user ID) required for valid PATCH request!"
+                            )
+                        }
+                    )
 
             return {
                 "success": True,
