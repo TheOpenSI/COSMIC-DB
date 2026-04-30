@@ -41,7 +41,7 @@ depends_on: Union[str, Sequence[str], None] = None
 class GeneralConfigs(BaseModel):
     """docstring for GeneralConfigs."""
     provider:               str         = "ollama"
-    model:                  str         = "qwen3.5:9b"
+    model:                  str         = "qwen2.5:7b"
     is_quantised:           bool        = False
     seed:                   int         = 0
     # TODO:
@@ -53,7 +53,7 @@ class GeneralConfigs(BaseModel):
     # NOTE:
     # Read specified key's value from `cosmic_config.env` file (for now until I
     # think of a better, more secure solution).
-    api_key:                str | None  = cosmic_db_configs["OPENAI_API_KEY"]
+    api_key:    str | None  = cosmic_db_configs.get("OPENAI_API_KEY", None)
 
 
 class QueryAnalyserConfigs(GeneralConfigs):
@@ -61,7 +61,7 @@ class QueryAnalyserConfigs(GeneralConfigs):
     # NOTE:
     # On 'Configs' page, there'll be an option to apply similar configs as the
     # general unless wanting to customise manually by the admin user.
-    model:          str     = "qwen3.6:35b"
+    model:          str     = "llama3.3:70b"
     is_quantised:   bool    = True
 
 
