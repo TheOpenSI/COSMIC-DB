@@ -9,7 +9,9 @@ from fastapi import (
     HTTPException,
     status
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql.expression import update
+from sqlalchemy.sql.functions import func
 from sqlmodel import select
 from httpx import (
     AsyncClient,
@@ -30,7 +32,7 @@ from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import ResponseValidationError
 from sqlalchemy.sql.expression import Update
-from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
 
 
 ### Internal modules ###
@@ -338,84 +340,122 @@ async def update_chatbox_v1(
                                         if "name" in key
                                     ]
 
-                                    new_chat_history: dict[ColumnElement, Any] = {}
+                                    new_chat_history: list[dict[ColumnElement, BinaryExpression[Any]]] | dict[ColumnElement, Any] = []
 
-                                    # Sub-case 2b:
-                                    # Perform surgical updates (1 or more) in partial
-                                    # data update request
-                                    for (
-                                        chat_history_idx,
-                                        chat_history
-                                    ) in enumerate(
-                                        iterable=chatbox_data["details"],
-                                        start=0
-                                    ):
-                                        # Sub-case 2b - Scenario 1:
-                                        # User role surgical updates
-                                        chat_user_role:         str = chat_history["user_role"]
+                                    # Sub-case 2b - Scenario 1:
+                                    # Continuously adding chat convo to current
+                                    # chat history data
+                                    if len(chatbox_data["details"]) > len(chatbox_db.details):
+                                        new_chat_convo: BinaryExpression[Any] = Chatboxes.details # pyright: ignore
 
-                                        if  (chat_user_role.capitalize() in roles_name) \
-                                        and (chat_user_role != chatbox_db.details[chat_history_idx]["user_role"]): # pyright: ignore
-                                            # To match role name format from called endpoint
-                                            new_chat_history[Chatboxes.details[chat_history_idx]["user_role"]] = chat_user_role.capitalize() # pyright: ignore
-
-
-                                        # Sub-case 2b - Scenario 2:
-                                        # LLM role surgical updates
-                                        chat_llm_role:          str = chat_history["llm_role"]
-
-                                        if  (chat_llm_role.capitalize() in roles_name) \
-                                        and (chat_llm_role != chatbox_db.details[chat_history_idx]["llm_role"]): # pyright: ignore
-                                            # To match role name format from called endpoint
-                                            new_chat_history[Chatboxes.details[chat_history_idx]["llm_role"]] = chat_llm_role.capitalize() # pyright: ignore
-
-
-                                        # Sub-case 2b - Scenario 3:
-                                        # User query updates, which its timestamp
-                                        # must be updated as well to reflect accurate
-                                        # new changes
-                                        chat_user_query:        str = chat_history["user_query"]
-                                        chat_user_timestamp:    str = chat_history["query_create_on"]
-
-                                        if chat_user_query != chatbox_db.details[chat_history_idx]["user_query"]: # pyright: ignore
-                                            new_chat_history[Chatboxes.details[chat_history_idx]["user_query"]] = chat_user_query # pyright: ignore
-
-                                        if (
-                                            # NOTE:
-                                            # It's much more safe and accurate to
-                                            # compare timestamp value in its original
-                                            # form (datetime Object). The compiler
-                                            # will now understand that we're matching
-                                            # them in chronological logic instead.
-                                            datetime.fromisoformat(chat_user_timestamp) \
-                                            !=
-                                            datetime.fromisoformat(chatbox_db.details[chat_history_idx]["query_create_on"]) # pyright: ignore
+                                        for (
+                                            chat_history_idx,
+                                            chat_history
+                                        ) in enumerate(
+                                            iterable=chatbox_data["details"],
+                                            start=0
                                         ):
-                                            new_chat_history[Chatboxes.details[chat_history_idx]["query_create_on"]] = chat_user_timestamp # pyright: ignore
+                                            chat_user_role: str = chat_history["user_role"]
+                                            chat_llm_role:  str = chat_history["llm_role"]
 
+                                            if  (chat_user_role.capitalize() in roles_name) \
+                                            and (chat_llm_role.capitalize() in roles_name):
+                                                # Valid role name, good to process
+                                                pass
 
-                                        # Sub-case 2b - Scenario 4:
-                                        # LLM response updates, which its timestamp
-                                        # must be updated as well to reflect accurate
-                                        # new changes
-                                        chat_llm_response:      str = chat_history["llm_response"]
-                                        chat_llm_timestamp:     str = chat_history["response_create_on"]
+                                        new_chat_history.append(
+                                            {
+                                                new_chat_convo: (
+                                                    func.cast(new_chat_convo, JSONB)
+                                                ).op("||")(
+                                                    func.cast(chatbox_data["details"], JSONB)
+                                                )
+                                            }
+                                        )
 
-                                        if chat_llm_response != chatbox_db.details[chat_history_idx]["llm_response"]: # pyright: ignore
-                                            new_chat_history[Chatboxes.details[chat_history_idx]["llm_response"]] = chat_llm_response # pyright: ignore
+                                    # Sub-case 2b - Scenario 2:
+                                    # Continuously (maybe) removing chat convo
+                                    # from current chat history data
+                                    elif len(chatbox_data["details"]) < len(chatbox_db.details):
+                                        pass
 
-                                        if (
-                                            # NOTE:
-                                            # It's much more safe and accurate to
-                                            # compare timestamp value in its original
-                                            # form (datetime Object). The compiler
-                                            # will now understand that we're matching
-                                            # them in chronological logic instead.
-                                            datetime.fromisoformat(chat_llm_timestamp) \
-                                            !=
-                                            datetime.fromisoformat(chatbox_db.details[chat_history_idx]["response_create_on"]) # pyright: ignore
+                                    # Sub-case 2b - Scenario 3:
+                                    # Surgical updates (1 or many) to each
+                                    # current chat history data
+                                    else:
+                                        for (
+                                            chat_history_idx,
+                                            chat_history
+                                        ) in enumerate(
+                                            iterable=chatbox_data["details"],
+                                            start=0
                                         ):
-                                            new_chat_history[Chatboxes.details[chat_history_idx]["response_create_on"]] = chat_llm_timestamp # pyright: ignore
+                                            # Sub-case 2b - Scenario 3.1:
+                                            # User role surgical updates
+                                            chat_user_role: str = chat_history["user_role"]
+
+                                            if  (chat_user_role.capitalize() in roles_name) \
+                                            and (chat_user_role != chatbox_db.details[chat_history_idx]["user_role"]): # pyright: ignore
+                                                # To match role name format from called endpoint
+                                                new_chat_history[Chatboxes.details[chat_history_idx]["user_role"]] = chat_user_role.capitalize() # pyright: ignore
+
+
+                                            # Sub-case 2b - Scenario 3.2:
+                                            # LLM role surgical updates
+                                            chat_llm_role: str = chat_history["llm_role"]
+
+                                            if  (chat_llm_role.capitalize() in roles_name) \
+                                            and (chat_llm_role != chatbox_db.details[chat_history_idx]["llm_role"]): # pyright: ignore
+                                                # To match role name format from called endpoint
+                                                new_chat_history[Chatboxes.details[chat_history_idx]["llm_role"]] = chat_llm_role.capitalize() # pyright: ignore
+
+
+                                            # Sub-case 2b - Scenario 3.3:
+                                            # User query updates, which its timestamp
+                                            # must be updated as well to reflect accurate
+                                            # new changes
+                                            chat_user_query:        str = chat_history["user_query"]
+                                            chat_user_timestamp:    str = chat_history["query_create_on"]
+
+                                            if chat_user_query != chatbox_db.details[chat_history_idx]["user_query"]: # pyright: ignore
+                                                new_chat_history[Chatboxes.details[chat_history_idx]["user_query"]] = chat_user_query # pyright: ignore
+
+                                            if (
+                                                # NOTE:
+                                                # It's much more safe and accurate to
+                                                # compare timestamp value in its original
+                                                # form (datetime Object). The compiler
+                                                # will now understand that we're matching
+                                                # them in chronological logic instead.
+                                                datetime.fromisoformat(chat_user_timestamp) \
+                                                !=
+                                                datetime.fromisoformat(chatbox_db.details[chat_history_idx]["query_create_on"]) # pyright: ignore
+                                            ):
+                                                new_chat_history[Chatboxes.details[chat_history_idx]["query_create_on"]] = chat_user_timestamp # pyright: ignore
+
+
+                                            # Sub-case 2b - Scenario 3.4:
+                                            # LLM response updates, which its timestamp
+                                            # must be updated as well to reflect accurate
+                                            # new changes
+                                            chat_llm_response:      str = chat_history["llm_response"]
+                                            chat_llm_timestamp:     str = chat_history["response_create_on"]
+
+                                            if chat_llm_response != chatbox_db.details[chat_history_idx]["llm_response"]: # pyright: ignore
+                                                new_chat_history[Chatboxes.details[chat_history_idx]["llm_response"]] = chat_llm_response # pyright: ignore
+
+                                            if (
+                                                # NOTE:
+                                                # It's much more safe and accurate to
+                                                # compare timestamp value in its original
+                                                # form (datetime Object). The compiler
+                                                # will now understand that we're matching
+                                                # them in chronological logic instead.
+                                                datetime.fromisoformat(chat_llm_timestamp) \
+                                                !=
+                                                datetime.fromisoformat(chatbox_db.details[chat_history_idx]["response_create_on"]) # pyright: ignore
+                                            ):
+                                                new_chat_history[Chatboxes.details[chat_history_idx]["response_create_on"]] = chat_llm_timestamp # pyright: ignore
 
 
                                     #TODO: some sort of `verbose` argument toggle for debug only
@@ -445,29 +485,56 @@ async def update_chatbox_v1(
                                         pass
 
                                     else:
-                                        # NOTE:
-                                        # This might be hard to read because we're trying
-                                        # to be dynamic by leverage the type check from
-                                        # ORM for running SQL query. This code (in SQL
-                                        # syntax) is:
-                                        #   UPDATE
-                                        #       chatboxes
-                                        #   SET
-                                        #       chatboxes['details'][chat_history_idx][current key] = <new value>
-                                        #   WHERE
-                                        #       chatboxes.id = chatbox_session_id
-                                        #   RETURNING
-                                        #       chatboxes.user_id,
-                                        #       chatboxes.name,
-                                        #       chatboxes.details
-                                        chatbox_stmt: Update = (
-                                            update(table=Chatboxes)
-                                            .where(Chatboxes.id == chatbox_session_id) # pyright: ignore
-                                            .values(new_chat_history)
-                                            .returning(Chatboxes)
-                                        )
-                                        session.exec(statement=chatbox_stmt)
-                                        session.commit()
+                                        if isinstance(new_chat_history, list):
+                                            for new_chat_convo in new_chat_history: # pyright: ignore
+                                                # NOTE:
+                                                # This might be hard to read because we're trying to be
+                                                # dynamic by leverage the type check from ORM for running SQL
+                                                # query. This code (in SQL syntax) is:
+                                                #   UPDATE
+                                                #       chatboxes
+                                                #   SET
+                                                #       details = details::JSONB || [new_chat_history]::JSONB
+                                                #   WHERE
+                                                #       chatboxes.id = config_id
+                                                #   RETURNING
+                                                #       chatboxes.name,
+                                                #       chatboxes.details,
+                                                #       chatboxes.id,
+                                                #       chatboxes.create_on
+                                                chatbox_stmt: Update = (
+                                                    update(table=Chatboxes)
+                                                    .where(Chatboxes.id == chatbox_session_id) # pyright: ignore
+                                                    .values(new_chat_convo) # pyright: ignore
+                                                    .returning(Chatboxes)
+                                                )
+                                                session.exec(statement=chatbox_stmt)
+                                            session.commit()
+
+                                        elif isinstance(new_chat_history, dict):
+                                            # NOTE:
+                                            # This might be hard to read because we're trying
+                                            # to be dynamic by leverage the type check from
+                                            # ORM for running SQL query. This code (in SQL
+                                            # syntax) is:
+                                            #   UPDATE
+                                            #       chatboxes
+                                            #   SET
+                                            #       chatboxes['details'][chat_history_idx][current key] = <new value>
+                                            #   WHERE
+                                            #       chatboxes.id = chatbox_session_id
+                                            #   RETURNING
+                                            #       chatboxes.user_id,
+                                            #       chatboxes.name,
+                                            #       chatboxes.details
+                                            chatbox_stmt: Update = (
+                                                update(table=Chatboxes)
+                                                .where(Chatboxes.id == chatbox_session_id) # pyright: ignore
+                                                .values(new_chat_history)
+                                                .returning(Chatboxes)
+                                            )
+                                            session.exec(statement=chatbox_stmt)
+                                            session.commit()
 
                                 except ConnectError as httpx_err:
                                     raise HTTPException(
@@ -480,6 +547,10 @@ async def update_chatbox_v1(
                                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                         detail=f"{httpx_err}"
                                     )
+
+                        else:
+                            # Update other data than chatbox details
+                            pass
 
                 else:
                     # We CANNOT update chatbox data without its ownership
