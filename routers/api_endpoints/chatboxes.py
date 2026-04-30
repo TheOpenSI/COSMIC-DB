@@ -56,110 +56,6 @@ chatboxes_v1_router: APIRouter = APIRouter(
 )
 
 
-chatbox_post_description: str = """
-## Extra information
-
-This endpoint is strictly used for storing user-specific chat history for each
-chatbox session. These data will be sent to our **Chatboxes** database table.
-
-### Datetime format requirements
-
-All datetime fields in this endpoint follow [**RFC 3339**](https://datatracker.ietf.org/doc/html/rfc3339)
-format as strict mode enabled (Reference: [**Pydantic docs**](https://pydantic.dev/docs/validation/latest/concepts/strict_mode))
-
-**1. Requirements**
-- Must include `T` separator between date and time
-- Must include timezone offset (`Z` or `±HH:MM`)
-
-**2. Valid examples**
-- `2024-12-24T21:20:00Z`        *(UTC)*
-- `2024-12-24T16:20:00-05:00`   *(With offset)*
-- `2024-12-24T21:20:00.123Z`    *(With milliseconds)*
-
-**3. Invalid examples**
-- `2024-12-24 21:20:00` *(Missing `T` separator)*
-- `2024-12-24T21:20:00` *(Missing timezone)*
-"""
-chatbox_update_description: str = """
-## Extra information
-
-This endpoint is used mainly for updating existing chat history in the
-**Chatboxes** database table. The update behavior varies based on what data is
-provided.
-
-### Update Types
-
-**1. Full Update**
-- Replace the entire chatbox record
-- All fields must be provided
-
-**2. Partial Update**
-- Update only specified fields
-- Unspecified fields is safely ignored thanks to Pydantic validation
-- We got 2 main sub-types to aware about:
-
-    **2.1. Simple Column Data**
-    - Scalar values (strings, integers, booleans)
-    - Example: `{"name": "New Chat Name"}`
-
-    **2.2. Complex Column Data (JSONB)**
-    - For our usecase, it'll be used to append to existing data only
-    - Uses PostgreSQL `||` operator to efficiently join complex JSONB data
-
-### Datetime format requirements
-
-All datetime fields in this endpoint follow [**RFC 3339**](https://datatracker.ietf.org/doc/html/rfc3339)
-format as strict mode enabled (Reference: [**Pydantic docs**](https://pydantic.dev/docs/validation/latest/concepts/strict_mode))
-
-**1. Requirements**
-- Must include `T` separator between date and time
-- Must include timezone offset (`Z` or `±HH:MM`)
-
-**2. Valid examples**
-- `2024-12-24T21:20:00Z`        *(UTC)*
-- `2024-12-24T16:20:00-05:00`   *(With offset)*
-- `2024-12-24T21:20:00.123Z`    *(With milliseconds)*
-
-**3. Invalid examples**
-- `2024-12-24 21:20:00` *(Missing `T` separator)*
-- `2024-12-24T21:20:00` *(Missing timezone)*
-
-### Update Operation Examples
-**NOTE:
-We wrote this in YAML format for better readability. Please convert to JSON
-format (if needed).**
-
-
-```yaml
-// Full update (all fields required)
-user_id: "019dc32b-2f4a-7931-ab92-f6d6bf9e9ba4",
-name: "<chat session title>",
-details:
-    - user_role: "<user role>",
-      user_query: "<user query>",
-      query_create_on: "2026-04-25T05:44:23.647Z",
-      llm_role: "<llm role>",
-      llm_response: "<llm response>",
-      response_create_on: "2026-04-25T05:44:23.647Z"
-
-    # Specify more here
-
-
-// Partial update (simple fields only)
-name: "<chat session title>"
-
-
-// Partial update (complex fields only)
-details:
-    - user_role: "<user role>",
-      user_query: "<user query>",
-      query_create_on: "2026-04-25T05:44:23.647Z",
-      llm_role: "<llm role>",
-      llm_response: "<llm response>",
-      response_create_on: "2026-04-25T05:44:23.647Z"
-
-    # Specify more here
-"""
 chatbox_additional_responses: dict[int | str, dict[str, Any]] = {
     409: {
         "description": "Integrity Error",
@@ -219,7 +115,6 @@ async def read_chatboxes_v1(
     path="/",
     status_code=status.HTTP_201_CREATED,
     response_model=ChatboxCreateResponse,
-    description=chatbox_post_description,
     responses=chatbox_additional_responses
 )
 async def create_chatbox_v1(
@@ -302,7 +197,6 @@ async def read_chatbox_v1(
     path="/{chatbox_session_id}",
     status_code=status.HTTP_200_OK,
     response_model=ChatboxUpdateResponse,
-    description=chatbox_update_description,
     responses=chatbox_additional_responses
 )
 async def update_chatbox_v1(
