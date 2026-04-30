@@ -340,12 +340,12 @@ async def update_chatbox_v1(
                                         if "name" in key
                                     ]
 
-                                    new_chat_history: list[dict[ColumnElement, BinaryExpression[Any]]] | dict[ColumnElement, Any] = []
-
                                     # Sub-case 2b - Scenario 1:
                                     # Continuously adding chat convo to current
                                     # chat history data
-                                    if len(chatbox_data["details"]) > len(chatbox_db.details):
+                                    if (len(chatbox_data["details"]) < len(chatbox_db.details)) \
+                                    or (len(chatbox_data["details"]) > len(chatbox_db.details)):
+                                        new_chat_history: list[dict[ColumnElement, BinaryExpression[Any]]] = [] # pyright: ignore
                                         new_chat_convo: BinaryExpression[Any] = Chatboxes.details # pyright: ignore
 
                                         for (
@@ -363,7 +363,7 @@ async def update_chatbox_v1(
                                                 # Valid role name, good to process
                                                 pass
 
-                                        new_chat_history.append(
+                                        new_chat_history.append( # pyright: ignore
                                             {
                                                 new_chat_convo: (
                                                     func.cast(new_chat_convo, JSONB)
@@ -374,15 +374,11 @@ async def update_chatbox_v1(
                                         )
 
                                     # Sub-case 2b - Scenario 2:
-                                    # Continuously (maybe) removing chat convo
-                                    # from current chat history data
-                                    elif len(chatbox_data["details"]) < len(chatbox_db.details):
-                                        pass
-
-                                    # Sub-case 2b - Scenario 3:
                                     # Surgical updates (1 or many) to each
                                     # current chat history data
                                     else:
+                                        new_chat_history: dict[ColumnElement, Any] = {}
+
                                         for (
                                             chat_history_idx,
                                             chat_history
@@ -472,7 +468,7 @@ async def update_chatbox_v1(
                                     #    indent=4 # Prefer tab over spaces indentation
                                     #)
 
-                                    if len(new_chat_history) == 0:
+                                    if len(new_chat_history) == 0: # pyright: ignore
                                         # Two scenarios can occured here:
                                         # 1. Incoming data completely matched stored data
                                         # => Do nothing. We don't want to waste disk
@@ -485,7 +481,7 @@ async def update_chatbox_v1(
                                         pass
 
                                     else:
-                                        if isinstance(new_chat_history, list):
+                                        if isinstance(new_chat_history, list): # pyright: ignore
                                             for new_chat_convo in new_chat_history: # pyright: ignore
                                                 # NOTE:
                                                 # This might be hard to read because we're trying to be
@@ -511,7 +507,7 @@ async def update_chatbox_v1(
                                                 session.exec(statement=chatbox_stmt)
                                             session.commit()
 
-                                        elif isinstance(new_chat_history, dict):
+                                        elif isinstance(new_chat_history, dict): # pyright: ignore
                                             # NOTE:
                                             # This might be hard to read because we're trying
                                             # to be dynamic by leverage the type check from
