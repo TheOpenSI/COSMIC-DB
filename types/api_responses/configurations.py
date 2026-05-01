@@ -23,7 +23,7 @@ class ChessServiceOptions(SQLModel):
 
 
 class MemoryServiceOptions(SQLModel):
-    """docstring for ChessServiceOptions."""
+    """docstring for MemoryServiceOptions."""
     # TODO:
     # This need to be defined and stored from an external mounted volume data
     # that's related to vector database container. After a PR for this create
@@ -32,7 +32,7 @@ class MemoryServiceOptions(SQLModel):
 
 
 class CodeGenerationServiceOptions(SQLModel):
-    """docstring for ChessServiceOptions."""
+    """docstring for CodeGenerationServiceOptions."""
     top_k:                      int     = 10
     retrieve_score_threshold:   float   = 0.7
     # TODO:
@@ -42,8 +42,8 @@ class CodeGenerationServiceOptions(SQLModel):
     vector_db_path:             str     = "/app/qdrant/"
 
 
-class GeneralQuestionServiceOptions(SQLModel):
-    """docstring for GeneralQuestionServiceOptions."""
+class GeneralQuestionAnsweringServiceOptions(SQLModel):
+    """docstring for GeneralQuestionAnsweringServiceOptions."""
     # No extra options needed for this service.
     pass
 
@@ -57,12 +57,14 @@ class AcademicGovernanceServiceOptions(SQLModel):
 # Custom type declaration needed for able to use it as type-hint at compile
 # time. For reference:
 # https://docs.python.org/3/reference/simple_stmts.html#type
-type ServiceOptions =                       \
-    ChessServiceOptions                 |   \
-    MemoryServiceOptions                |   \
-    GeneralQuestionServiceOptions       |   \
-    AcademicGovernanceServiceOptions    |   \
+type ServiceOptions = (
+    ChessServiceOptions                     |
+    MemoryServiceOptions                    |
+    CodeGenerationServiceOptions            |
+    GeneralQuestionAnsweringServiceOptions  |
+    AcademicGovernanceServiceOptions        |
     dict[None, None]
+)
 
 
 
@@ -92,24 +94,22 @@ class QueryAnalyserConfigs(GeneralConfigs):
     # NOTE:
     # On 'Configs' page, there'll be an option to apply similar configs as the
     # general unless wanting to customise manually by the admin user.
-    #
-    # Use the `qwen3.6:35b` (latest model that I just saw it published on Ollama
-    # for this family - 18/04/26) for Query Analyser with quantised enabled.
-    pass
+    model:          str     = "qwen3.6:35b"
+    is_quantised:   bool    = True
 
 
 class ServicesConfigs(SQLModel):
     """docstring for ServicesConfigs."""
-    name: str
-    option: ServiceOptions | None = {}
+    name:   str
+    option: ServiceOptions | dict[None, None] = {}
 
 
 
 #=============================================================================#
 #       Pydantic validation for default configurations (JSONB type)           #
 #=============================================================================#
-class ConfigurationResponse(SQLModel):
-    """docstring for GeneralConfigs."""
+class ConfigurationSchema(SQLModel):
+    """docstring for ConfigurationSchema."""
     general:        GeneralConfigs
     query_analyser: QueryAnalyserConfigs
-    services:       list[ServicesConfigs] = []
+    services:       list[ServicesConfigs] | list[None] = []

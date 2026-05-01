@@ -3,7 +3,7 @@ from sqlmodel import SQLModel
 
 
 ### Type hints ###
-from pydantic_extra_types.pendulum_dt import DateTime
+from pydantic.types import AwareDatetime
 
 
 ### Internal modules ###
@@ -19,6 +19,6 @@ class ChatboxResponse(SQLModel):
     # If edit/share convo pairs feature added, then we can use 'convo_pair_id'
     # UUID value.
     user:               str
-    query_create_on:    DateTime
+    query_create_on:    AwareDatetime
     assitant:           str
-    response_create_on: DateTime
+    response_create_on: AwareDatetime
