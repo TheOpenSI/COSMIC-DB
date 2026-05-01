@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 
 ### Type hints ###
+from pydantic.types import AwareDatetime
 
 
 ### Internal modules ###

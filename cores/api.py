@@ -23,9 +23,6 @@ from ..routers.api_endpoints.chatboxes import chatboxes_v1_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Equivalent to 'startup' event
-    from sqlmodel import SQLModel
-    from .db import cosmic_db_engine
-    SQLModel.metadata.create_all(cosmic_db_engine)
 
     # NOTE:
     # We keep this for now as I do plan to add some logging/health checks here

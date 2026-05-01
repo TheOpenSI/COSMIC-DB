@@ -1,7 +1,9 @@
 ### Core modules ###
+from typing import Annotated
 from fastapi import (
     APIRouter,
     HTTPException,
+    Query,
     status
 )
 from sqlmodel import select
@@ -29,6 +31,9 @@ from ...types.api_responses.services import (
     ServiceUpdateResponse,
     ServiceDeleteResponse
 )
+from ...types.filter_params import (
+    ServiceFilterParams
+)
 
 
 
@@ -44,23 +49,66 @@ services_v1_router: APIRouter = APIRouter(
     response_model=ServicesPublicResponse
 )
 async def read_services_v1(
-    session: SessionDependency
+    session: SessionDependency,
+    filter_query: Annotated[
+        ServiceFilterParams,
+        Query(
+            title="Services Filter",
+            description="filter by active/deactive services.",
+            strict=True
+        )
+    ]
 ) -> Any:
-    services_view: Sequence[Services] = session.exec(statement=select(Services)).all()
-    total_services: int = len(services_view)
+    if filter_query.active is None:
+        services_view: Sequence[Services] = session.exec(statement=select(Services)).all()
+        total_services: int = len(services_view)
 
-    if (total_services == 0):
-        return {
-            "success": True,
-            "count": total_services, # 0
-            "result": services_view
-        }
+        if (total_services == 0):
+            return {
+                "success": True,
+                "count": total_services, # 0
+                "result": services_view
+            }
+        else:
+            return {
+                "success": True,
+                "count": total_services, # all fetchable service data
+                "result": services_view
+            }
+
+    elif filter_query.active:
+        active_services_view: Sequence[Services] = session.exec(statement=select(Services).where(Services.status == True)).all()
+        total_services: int = len(active_services_view)
+
+        if (total_services == 0):
+            return {
+                "success": True,
+                "count": total_services, # 0
+                "result": active_services_view
+            }
+        else:
+            return {
+                "success": True,
+                "count": total_services, # all fetchable active service data
+                "result": active_services_view
+            }
+
     else:
-        return {
-            "success": True,
-            "count": total_services, # all fetchable service data
-            "result": services_view
-        }
+        deactive_services_view: Sequence[Services] = session.exec(statement=select(Services).where(Services.status == False)).all()
+        total_services: int = len(deactive_services_view)
+
+        if (total_services == 0):
+            return {
+                "success": True,
+                "count": total_services, # 0
+                "result": deactive_services_view
+            }
+        else:
+            return {
+                "success": True,
+                "count": total_services, # all fetchable deactive service data
+                "result": deactive_services_view
+            }
 
 
 @services_v1_router.post(
