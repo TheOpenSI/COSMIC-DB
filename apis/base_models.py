@@ -13,7 +13,7 @@ from sqlalchemy.sql.sqltypes import (
     Uuid
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from ..types.api_responses.configurations import ConfigurationSchema
+from ..types.json_schemas import ConfigurationSchema
 from ..types.api_responses.chatboxes import ChatboxResponse
 
 
