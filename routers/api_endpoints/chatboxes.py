@@ -241,6 +241,10 @@ async def update_chatbox_v1(
                 # It's much more safe and accurate to compare UUID value in its
                 # original form (UUID Object). The compiler will now understand
                 # that we're matching them in chronological logic instead.
+
+                # Case 1a:
+                # Surgical specifed chatbox ownership (user ID) updates within
+                # full data updates
                 if UUID(
                     hex=chatbox_user_id,
                     version=7,
@@ -259,12 +263,131 @@ async def update_chatbox_v1(
                     )
 
                 else:
-                    chatbox_db.name     = chatbox_name
-                    chatbox_db.details  = chatbox_details # pyright: ignore
+                    # Case 1b:
+                    # Surgical chatbox name updates within full data updates
+                    if chatbox_name == chatbox_db.name:
+                        # Incoming data matched stored data so no need to
+                        # waste disk I/O for running update on nothing
+                        pass
 
-                    session.add(instance=chatbox_db)
-                    session.commit()
-                    session.refresh(instance=chatbox_db)
+                    else:
+                        # NOTE:
+                        # We didn't use `sqlmodel_update()` method here since
+                        # specified chatbox ownership cannot be modified, but
+                        # we still have to provide the `user_id` data, which
+                        # this method will execute surgical update on BOTH
+                        # `user_id` & `name` data.
+                        chatbox_db.name = chatbox_name # pyright: ignore
+
+                        session.add(instance=chatbox_db)
+                        session.commit()
+                        session.refresh(instance=chatbox_db)
+
+
+                    # Case 1c:
+                    # Surgical chatbox details updates within full data updates
+                    if len(chatbox_details) <= len(chatbox_db.details):
+                        # NOTE:
+                        # Endpoints calling from the same container doesn't need
+                        # to know the container service name
+                        roles_endpoint: str     = "http://localhost:8000/api/v1/roles/"
+                        roles_timeout:  float   = 10.0
+
+                        async with AsyncClient(
+                            base_url=roles_endpoint,
+                            timeout=roles_timeout
+                        ) as client:
+                            try:
+                                roles_response: Response = await client.get(url="/")
+                                roles_data: list[dict[str, Any]] = roles_response.json()["result"]
+                                roles_name: list[str] = [
+                                    value
+                                    for role_data in roles_data
+                                    for (key, value) in role_data.items()
+                                    if "name" in key
+                                ]
+
+                                # NOTE: these 3 vars are for type-hint purposes
+                                user_admin_role: str
+                                user_normal_role: str
+                                llm_normal_role: str
+                                (user_admin_role, user_normal_role, llm_normal_role) = roles_name
+
+                                for chat_history in chatbox_details:
+                                    chat_user_role: str = chat_history["user_role"]
+                                    chat_llm_role:  str = chat_history["llm_role"]
+
+                                    # Invalid role name format, deny the request
+                                    if chat_user_role not in (user_admin_role, user_normal_role):
+                                        raise HTTPException(
+                                            status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail="{trig:s}: {cond:s}".format(
+                                                trig="Chatbox update forbidden",
+                                                cond=f"User role value must be in PascalCase. Received: {chat_user_role}"
+                                            )
+                                        )
+
+                                    if chat_llm_role != llm_normal_role:
+                                        raise HTTPException(
+                                            status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail="{trig:s}: {cond:s}".format(
+                                                trig="Chatbox update forbidden",
+                                                cond=f"LLM role value must be in PascalCase. Received: {chat_llm_role}"
+                                            )
+                                        )
+
+                                # NOTE:
+                                # This might be hard to read because we're trying to be
+                                # dynamic by leverage the type check from ORM for running SQL
+                                # query. This code (in SQL syntax) is:
+                                #   UPDATE
+                                #       chatboxes
+                                #   SET
+                                #       details = details::JSONB || [new_chat_history]::JSONB
+                                #   WHERE
+                                #       chatboxes.id = config_id
+                                #   RETURNING
+                                #       chatboxes.name,
+                                #       chatboxes.details,
+                                #       chatboxes.id,
+                                #       chatboxes.create_on
+                                for chat_history in chatbox_details:
+                                    chatbox_stmt: Update = (
+                                        update(table=Chatboxes)
+                                        .where(Chatboxes.id == chatbox_session_id)  # pyright: ignore
+                                        .values({
+                                            Chatboxes.details: (                    # pyright: ignore
+                                                func.cast(Chatboxes.details, JSONB) # pyright: ignore
+                                            ).op("||")(
+                                                func.cast(chat_history, JSONB)      # pyright: ignore
+                                            )
+                                        })
+                                        .returning(Chatboxes)
+                                    )
+                                    session.exec(statement=chatbox_stmt)
+                                session.commit()
+
+                            except ConnectError as httpx_err:
+                                raise HTTPException(
+                                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"{httpx_err}"
+                                )
+
+                            except ConnectTimeout as httpx_err:
+                                raise HTTPException(
+                                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"{httpx_err}"
+                                )
+
+                    else:
+                        # API abuses/exploits detected here. Deny the request.
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="{trig:s}: {cond:s}".format(
+                                trig="Chatbox update forbidden",
+                                cond=f"Valid Chat History updates is at the power of 1 => API abuses/exploits detected. Incoming Chat History size: {len(chatbox_details)}"
+                            )
+                        )
 
             # Case 2: partial data updates
             else:
