@@ -102,7 +102,7 @@ class ChatboxBase(SQLModel):
         ) # pyright: ignore
     )
     name: str = Field(
-        max_length=256,
+        max_length=255,
         nullable=False,
         sa_type=Text(
             length=None,
