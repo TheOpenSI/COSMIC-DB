@@ -133,7 +133,7 @@ async def read_chatboxes_v1(
     responses=chatbox_additional_responses
 )
 async def create_chatbox_v1(
-    chat_history: ChatboxCreate,
+    chatbox: ChatboxCreate,
     session: SessionDependency
 ) -> Any:
     try:
@@ -144,18 +144,80 @@ async def create_chatbox_v1(
         # db table. SQLModel (or any ORMs, really) only handle incoming data that
         # have types match the convention for DB-specific system (with exception
         # on some custom types that are a part of the built-in Python modules).
-        chatbox_validate_data:      Chatboxes       = Chatboxes.model_validate(obj=chat_history, strict=True)
+        chatbox_validate_data:      Chatboxes       = Chatboxes.model_validate(obj=chatbox, strict=True)
         chatbox_compatible_data:    dict[str, Any]  = chatbox_validate_data.model_dump(mode="json", exclude_unset=True)
-        chatbox_db:                 Chatboxes       = Chatboxes(**chatbox_compatible_data)
 
-        session.add(instance=chatbox_db)
-        session.commit()
-        session.refresh(instance=chatbox_db)
+        # NOTE:
+        # Endpoints calling from the same container doesn't need
+        # to know the container service name
+        roles_endpoint: str     = "http://localhost:8000/api/v1/roles/"
+        roles_timeout:  float   = 10.0
 
-        return {
-            "success": True,
-            "created": chatbox_db
-        }
+        async with AsyncClient(
+            base_url=roles_endpoint,
+            timeout=roles_timeout
+        ) as client:
+            try:
+                roles_response: Response = await client.get(url="/")
+                roles_data: list[dict[str, Any]] = roles_response.json()["result"]
+                roles_name: list[str] = [
+                    value
+                    for role_data in roles_data
+                    for (key, value) in role_data.items()
+                    if "name" in key
+                ]
+
+                # NOTE: these 3 vars are for type-hint purposes
+                user_admin_role: str
+                user_normal_role: str
+                llm_normal_role: str
+                (user_admin_role, user_normal_role, llm_normal_role) = roles_name
+
+                for chat_history in chatbox_compatible_data["details"]:
+                    chat_user_role: str = chat_history["user_role"]
+                    chat_llm_role:  str = chat_history["llm_role"]
+
+                    # Invalid role name format, deny the request
+                    if chat_user_role not in (user_admin_role, user_normal_role):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="{trig:s}: {cond:s}".format(
+                                trig="Chatbox update forbidden",
+                                cond=f"User role value must be in PascalCase (e.g, Admin, User). Received: {chat_user_role}"
+                            )
+                        )
+
+                    if chat_llm_role != llm_normal_role:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="{trig:s}: {cond:s}".format(
+                                trig="Chatbox update forbidden",
+                                cond=f"LLM role value must be in PascalCase (e.g., Assistant). Received: {chat_llm_role}"
+                            )
+                        )
+
+                chatbox_db: Chatboxes = Chatboxes(**chatbox_compatible_data)
+
+                session.add(instance=chatbox_db)
+                session.commit()
+                session.refresh(instance=chatbox_db)
+
+                return {
+                    "success": True,
+                    "created": chatbox_db
+                }
+
+            except ConnectError as httpx_err:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"{httpx_err}"
+                )
+
+            except ConnectTimeout as httpx_err:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"{httpx_err}"
+                )
 
     except IntegrityError as psycopg_err:
         raise HTTPException(
