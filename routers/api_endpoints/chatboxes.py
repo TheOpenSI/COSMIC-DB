@@ -161,7 +161,11 @@ async def create_chatbox_v1(
                 roles_response: Response = await client.get(url="/")
                 roles_data: list[dict[str, Any]] = roles_response.json()["result"]
                 roles_name: list[str] = [
-                    value
+                    # NOTE:
+                    # Due to some hard-to-said circumstances between FE and BE,
+                    # this's the way to solve for now until those mismatch
+                    # finally stick.
+                    value.lower()
                     for role_data in roles_data
                     for (key, value) in role_data.items()
                     if "name" in key
@@ -180,10 +184,11 @@ async def create_chatbox_v1(
                     # Invalid role name format, deny the request
                     if chat_user_role not in (user_admin_role, user_normal_role):
                         raise HTTPException(
+                            # NOTE: same reasoning within the `roles_name` var
                             status_code=status.HTTP_400_BAD_REQUEST,
                             detail="{trig:s}: {cond:s}".format(
                                 trig="Chatbox update forbidden",
-                                cond=f"User role value must be in PascalCase (e.g, Admin, User). Received: {chat_user_role}"
+                                cond=f"User role value must be in lowercase (e.g, admin, user). Received: {chat_user_role}"
                             )
                         )
 
@@ -192,7 +197,7 @@ async def create_chatbox_v1(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             detail="{trig:s}: {cond:s}".format(
                                 trig="Chatbox update forbidden",
-                                cond=f"LLM role value must be in PascalCase (e.g., Assistant). Received: {chat_llm_role}"
+                                cond=f"LLM role value must be in lowercase (e.g., assistant). Received: {chat_llm_role}"
                             )
                         )
 
@@ -363,7 +368,11 @@ async def update_chatbox_v1(
                                 roles_response: Response = await client.get(url="/")
                                 roles_data: list[dict[str, Any]] = roles_response.json()["result"]
                                 roles_name: list[str] = [
-                                    value
+                                    # NOTE:
+                                    # Due to some hard-to-said circumstances
+                                    # between FE and BE, this's the way to solve
+                                    # for now until those mismatch finally stick.
+                                    value.lower()
                                     for role_data in roles_data
                                     for (key, value) in role_data.items()
                                     if "name" in key
@@ -382,10 +391,11 @@ async def update_chatbox_v1(
                                     # Invalid role name format, deny the request
                                     if chat_user_role not in (user_admin_role, user_normal_role):
                                         raise HTTPException(
+                                            # NOTE: same reasoning within the `roles_name` var
                                             status_code=status.HTTP_400_BAD_REQUEST,
                                             detail="{trig:s}: {cond:s}".format(
                                                 trig="Chatbox update forbidden",
-                                                cond=f"User role value must be in PascalCase. Received: {chat_user_role}"
+                                                cond=f"User role value must be in lowercase (e.g, admin, user). Received: {chat_user_role}"
                                             )
                                         )
 
@@ -394,7 +404,7 @@ async def update_chatbox_v1(
                                             status_code=status.HTTP_400_BAD_REQUEST,
                                             detail="{trig:s}: {cond:s}".format(
                                                 trig="Chatbox update forbidden",
-                                                cond=f"LLM role value must be in PascalCase. Received: {chat_llm_role}"
+                                                cond=f"LLM role value must be in lowercase (e.g., assistant). Received: {chat_llm_role}"
                                             )
                                         )
 
