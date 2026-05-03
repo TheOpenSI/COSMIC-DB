@@ -1,7 +1,7 @@
 """pre_populate_configs_data
 
 Revision ID: a3e40b0c0b7b
-Revises: 8e266617f204
+Revises: 51a0ff6b910d
 Create Date: 2026-04-20 19:37:59.722834
 
 """
@@ -28,7 +28,7 @@ from cores.db import cosmic_db_configs
 
 # revision identifiers, used by Alembic.
 revision: str = 'a3e40b0c0b7b'
-down_revision: Union[str, Sequence[str], None] = '8e266617f204'
+down_revision: Union[str, Sequence[str], None] = '51a0ff6b910d'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

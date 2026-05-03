@@ -13,8 +13,10 @@ from sqlalchemy.sql.sqltypes import (
     Uuid
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from ..types.json_schemas import ConfigurationSchema
-from ..types.api_responses.chatboxes import ChatboxResponse
+from ..types.json_schemas import (
+    ChatHistorySchema, 
+    ConfigurationSchema
+)
 
 
 ### Internal modules ###
@@ -90,7 +92,7 @@ class ConfigurationBase(SQLModel):
         ) # pyright: ignore
     )
 
-    
+
 class ChatboxBase(SQLModel):
     user_id: UUID = Field(
         nullable=False,
@@ -100,10 +102,14 @@ class ChatboxBase(SQLModel):
         ) # pyright: ignore
     )
     name: str = Field(
-        max_length=256,
+        max_length=255,
         nullable=False,
+        sa_type=Text(
+            length=None,
+            collation=None
+        ) # pyright: ignore
     )
-    details: ChatboxResponse = Field(
+    details: list[ChatHistorySchema] = Field(
         nullable=False,
         sa_type=JSONB(
             none_as_null=True,

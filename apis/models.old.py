@@ -117,44 +117,6 @@
 #####################################################
 ### Data Model (dynamic database data operations) ###
 #####################################################
-# class ChatboxPublic(ChatboxBase):
-#     # Use mainly for POST & PATCH requests as no need to view full FK data
-#     id: UUID
-#     user_id: UUID
-#     create_on: datetime
-#
-#
-# class ChatboxPublicWithUser(ChatboxBase):
-#     # No need to see user ID here as it's already in the Relationship()
-#     id: UUID
-#     users: UserPublic | None = None
-#     create_on: datetime
-#
-#
-# class ChatboxCreate(ChatboxBase):
-#     pass
-#
-#
-# class ChatboxUpdate(ChatboxBase):
-#     name: str | None = None # type: ignore
-#     details: dict[str, "JsonValue"] | None = { # type: ignore
-#         # Chat history format (as explained from the inheritance class, need to
-#         # define explicitly)
-#         "<user-role>": "<user-query>",
-#         "<model-name>": "<model-response>"
-#     }
-#
-#
-# class ChatboxDelete(ChatboxBase):
-#     id: UUID
-#     user_id: UUID
-#     create_on: datetime
-#     response: dict[str, int | str] = {
-#         "status": 200,
-#         "message": "OK"
-#     }
-#
-#
 # class ModelPublic(ModelBase):
 #     id: UUID
 #     install_on: datetime
