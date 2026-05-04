@@ -38,13 +38,13 @@ def upgrade() -> None:
     roles_data: list[dict[str, UUID | str | datetime]] = [
         {
             'id': uuid7(),
-            'name': 'Admin',
+            'name': 'admin',
             'desc': 'Has full administrative rights to configure CoSMIC, including selecting and managing models, adjusting RAG thresholds, and enabling or disabling available services.',
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
             'id': uuid7(),
-            'name': 'User',
+            'name': 'user',
             'desc': 'Can use CoSMIC but cannot change its configuration',
             'create_on': datetime.now(tz=timezone.utc)
         }
