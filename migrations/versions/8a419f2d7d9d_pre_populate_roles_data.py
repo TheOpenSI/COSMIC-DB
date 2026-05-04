@@ -47,15 +47,6 @@ def upgrade() -> None:
             'name': 'User',
             'desc': 'Can use CoSMIC but cannot change its configuration',
             'create_on': datetime.now(tz=timezone.utc)
-        },
-        {
-            # NOTE:
-            # Only LLM response need this role. Can be validate from FE/BE
-            # depends on the business logic
-            'id': uuid7(),
-            'name': 'Assistant',
-            'desc': 'Allow chat history to differenciate question from user and response from LLM. Only used for LLM responses.',
-            'create_on': datetime.now(tz=timezone.utc)
         }
     ]
 
