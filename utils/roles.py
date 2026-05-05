@@ -1,7 +1,23 @@
+### Core modules ###
+from fastapi import (
+    HTTPException,
+    status
+)
+from httpx import (
+    AsyncClient,
+    ConnectError,
+    ConnectTimeout,
+    Response
+)
+
+
+### Type hints ###
 from typing import Any
-from fastapi import HTTPException, status
-from httpx import AsyncClient, ConnectError, ConnectTimeout, Response
+
+
+### Internal modules ###
 from ..cores.globals import LLM_ROLE
+
 
 
 async def get_role_name(
@@ -131,7 +147,6 @@ async def get_role_name(
 
 
 async def valid_role_name(
-    # TODO: util to dynamically check for valid endpoint format
     chat_history_data:  list[dict[str, Any]],
     verbose:            bool = False
 ) -> bool:
