@@ -207,17 +207,20 @@ async def create_chatbox_v1(
                     "created": chatbox_db
                 }
 
+
             except ConnectError as httpx_err:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"{httpx_err}"
                 )
 
+
             except ConnectTimeout as httpx_err:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"{httpx_err}"
                 )
+
 
     except IntegrityError as psycopg_err:
         raise HTTPException(
@@ -228,6 +231,7 @@ async def create_chatbox_v1(
             }
         )
 
+
     except TypeError as python_err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -236,6 +240,7 @@ async def create_chatbox_v1(
                 "message": f"{python_err}"
             }
         )
+
 
     except ResponseValidationError as fastapi_err:
         raise HTTPException(
@@ -324,6 +329,7 @@ async def update_chatbox_v1(
                         }
                     )
 
+
                 else:
                     # Case 1b:
                     # Surgical chatbox name updates within full data updates
@@ -348,7 +354,7 @@ async def update_chatbox_v1(
 
                     # Case 1c:
                     # Surgical chatbox details updates within full data updates
-                    if len(chatbox_details) <= len(chatbox_db.details):
+                    if len(chatbox_details) < len(chatbox_db.details):
                         # NOTE:
                         # Endpoints calling from the same container doesn't need
                         # to know the container service name
@@ -426,11 +432,13 @@ async def update_chatbox_v1(
                                     session.exec(statement=chatbox_stmt)
                                 session.commit()
 
+
                             except ConnectError as httpx_err:
                                 raise HTTPException(
                                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"{httpx_err}"
                                 )
+
 
                             except ConnectTimeout as httpx_err:
                                 raise HTTPException(
@@ -438,18 +446,26 @@ async def update_chatbox_v1(
                                     detail=f"{httpx_err}"
                                 )
 
+
+                    elif len(chatbox_details) == len(chatbox_db.details):
+                        # TODO: this is the surgical updates scenario. I'll add it tmr
+                        pass
+
+
                     else:
                         # API abuses/exploits detected here. Deny the request.
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             detail="{trig:s}: {cond:s}".format(
                                 trig="Chatbox update forbidden",
-                                cond=f"Valid Chat History updates is at the power of 1 => API abuses/exploits detected. Incoming Chat History size: {len(chatbox_details)}"
+                                cond=f"Incoming chat history size is/are much bigger than stored chat history data => API abuses/exploits detected. Received size: {len(chatbox_details)}"
                             )
                         )
 
+
             # Case 2: partial data updates
             else:
+                # Case 2a: partial chatbox ownership updates
                 if "user_id" not in chatbox_data:
                     # We CANNOT update chatbox data without its ownership
                     raise HTTPException(
@@ -470,8 +486,6 @@ async def update_chatbox_v1(
                     # It's much more safe and accurate to compare UUID value in its
                     # original form (UUID Object). The compiler will now understand
                     # that we're matching them in chronological logic instead.
-
-                    # Case 2a: partial chatbox ownership updates
                     if UUID(
                         hex=chatbox_user_id,
                         version=7,
@@ -523,6 +537,11 @@ async def update_chatbox_v1(
                             pass
 
                         else:
+                            chatbox_details: list[dict[str, Any]] = chatbox_data["details"]
+
+                            new_chat_history_size: int = len(chatbox_details)
+                            old_chat_history_size: int = len(chatbox_db.details)
+
                             # NOTE:
                             # Endpoints calling from the same container doesn't need
                             # to know the container service name
@@ -547,9 +566,9 @@ async def update_chatbox_v1(
                                     # Sub-case 2c - Scenario 1:
                                     # Continuously adding chat convo to current
                                     # chat history data
-                                    if len(chatbox_data["details"]) <= len(chatbox_db.details):
-                                        new_chat_history: list[dict[ColumnElement, BinaryExpression[Any]]] = [] # pyright: ignore
-                                        new_chat_convo: BinaryExpression[Any] = Chatboxes.details               # pyright: ignore
+                                    if new_chat_history_size < old_chat_history_size:
+                                        new_chat_history:           list[dict[ColumnElement, BinaryExpression[Any]]]    = []                # pyright: ignore
+                                        new_chat_history_target:    BinaryExpression[Any]                               = Chatboxes.details # pyright: ignore
 
                                         for (
                                             chat_history_idx,
@@ -568,8 +587,8 @@ async def update_chatbox_v1(
 
                                         new_chat_history.append( # pyright: ignore
                                             {
-                                                new_chat_convo: (
-                                                    func.cast(new_chat_convo, JSONB)
+                                                new_chat_history_target: (
+                                                    func.cast(new_chat_history_target, JSONB)
                                                 ).op("||")(
                                                     func.cast(chatbox_data["details"], JSONB)
                                                 )
@@ -581,7 +600,7 @@ async def update_chatbox_v1(
                                     # Surgical updates (could be 1 or many at
                                     # once) to each chat history data from
                                     # specified chat session ID
-                                    else:
+                                    elif new_chat_history_size == old_chat_history_size:
                                         new_chat_history: dict[ColumnElement, Any] = {}
 
                                         for (
@@ -653,6 +672,19 @@ async def update_chatbox_v1(
                                             # them in chronological logic instead.
                                             if chat_llm_new_timestamp != chat_llm_old_timestmap:                                                    # pyright: ignore
                                                 new_chat_history[Chatboxes.details[chat_history_idx]["response_create_on"]] = chat_llm_timestamp    # pyright: ignore
+
+
+                                    # Sub-case 2c - Scenario 3:
+                                    # API exploits by passing in bulk chat
+                                    # history data
+                                    else:
+                                        raise HTTPException(
+                                            status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail="{trig:s}: {cond:s}".format(
+                                                trig="Chatbox update forbidden",
+                                                cond=f"Incoming chat history size is/are much bigger than stored chat history size. Received size: {new_chat_history_size} > {old_chat_history_size}"
+                                            )
+                                        )
 
 
                                     #TODO: some sort of `verbose` argument toggle for debug only

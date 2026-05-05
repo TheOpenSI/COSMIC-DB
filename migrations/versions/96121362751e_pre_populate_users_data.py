@@ -52,8 +52,17 @@ def upgrade() -> None:
         autoload_with=roles_bind
     )
 
-    # SQL query written in ORM style (for type-safe) to get correct role ID for
-    # assign to users data
+    # NOTE:
+    # Equivalent SQL query from this ORM style is:
+    #   SELECT 
+    #       id,
+    #       name
+    #   FROM
+    #       public.roles
+    #   WHERE 
+    #       name ILIKE 'admin'
+    #   OR
+    #       name ILIKE 'user'
     roles_stmt: sa.Select[tuple[str, str]] = (
         sa.select(
             roles_table.c.id,
