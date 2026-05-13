@@ -12,7 +12,6 @@ from ...types.json_schemas import ChatHistorySchema
 
 ### Internal modules ###
 from ..base_models import ChatboxBase
-from ..data_models.users import UserPublicWithRole
 
 
 
@@ -23,10 +22,6 @@ https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multipl
 class ChatboxPublic(ChatboxBase):
     id:         UUID7
     create_on:  AwareDatetime
-
-
-class ChatboxPublicWithUser(ChatboxPublic):
-    user:       UserPublicWithRole | None = None
 
 
 class ChatboxCreate(ChatboxBase):
