@@ -3,13 +3,11 @@ from pydantic import BaseModel
 
 
 ### Type hints ###
-from pydantic.types import AwareDatetime
 
 
 ### Internal modules ###
 from ...apis.data_models.chatboxes import (
     ChatboxPublic,
-    ChatboxPublicWithUser,
     ChatboxDelete
 )
 
@@ -21,7 +19,7 @@ Client responses format according to FE requirements.
 class ChatboxesPublicResponse(BaseModel):
     success:    bool
     count:      int
-    result:     list[ChatboxPublicWithUser]
+    result:     list[ChatboxPublic]
 
 
 class ChatboxCreateResponse(BaseModel):
@@ -31,7 +29,7 @@ class ChatboxCreateResponse(BaseModel):
 
 class ChatboxPublicResponse(BaseModel):
     success:    bool
-    result:     ChatboxPublicWithUser
+    result:     ChatboxPublic
 
 
 class ChatboxUpdateResponse(BaseModel):
