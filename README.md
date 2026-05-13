@@ -106,7 +106,7 @@ Then, copy the following files from the `examples/` directory to the following l
 > [!TIP]
 > Before finalising these files, review and adjust default values:
 > - Password
-> - Ssername
+> - Username
 > - Port
 > - Etc
 > Keep default setting if you're unsure about whether or not to modify it.
@@ -146,6 +146,7 @@ export DB_PASSWORD=""
 export DB_HOST=localhost
 export DB_PORT=5432
 export DB_NAME=postgres
+export OPENAI_API_KEY=
 ```
 ```ps1
 # Windows
@@ -156,6 +157,7 @@ $env:DB_PASSWORD=""
 $env:DB_HOST="localhost"
 $env:DB_PORT="5432"
 $env:DB_NAME="postgres"
+$env:OPENAI_API_KEY=
 ```
 
 ---
