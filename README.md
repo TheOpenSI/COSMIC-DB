@@ -1,4 +1,3 @@
-
 <h1 align="center">📁 Directory Hierarchy</h1>
 
 ```md
@@ -29,12 +28,21 @@ COSMIC-DB/
 ```
 
 ---
-
 # Quick Start
 
-Before setting up, ensure you've the appropriate tools installed depending on your chosen setup method. This guide supports:
-- Native setup (running services directly on your machine)
-- Docker setup (running services in isolated containers)
+Before setting up, decide which one is the correct purpose when you get to this modular repository:
+
+> [!NOTE]
+> The rest of this guide covers **Purpose 1**. For **Purpose 2**, refer to the
+> setup instructions in [CoSMIC_Docker repository](https://github.com/TheOpenSI/CoSMIC_Docker)
+
+1. **Module-only**: you are working on this part of the project in isolation (e.g., only CoSMIC BE).
+2. **Full-stack**: you need an end-to-end test run across all services (Front-end &rarr; Back-end &rarr; CoSMIC).
+
+Next, ensure you have the appropriate tools installed depending on your chosen execution method. This guide supports:
+
+- **Native setup** (running CoSMIC BE directly on your machine)
+- **Docker setup** (running CoSMIC BE in isolated containers)
 
 
 | **Tool**   |   **Docker Setup**    |   **Native Setup**    |
@@ -70,6 +78,7 @@ cd CoSMIC_DB/
 Set-Location CoSMIC_DB\
 ```
 
+---
 # Understanding Configuration Setup
 
 Our backend expects configuration files to be organised in specific locations depending on your chosen setup method. Understanding this structure will help you prepare the environment correctly.
@@ -161,7 +170,6 @@ $env:OPENAI_API_KEY=
 ```
 
 ---
-
 # Setup & Execution
 
 > [!TIP]
