@@ -1,0 +1,44 @@
+### Core modules ###
+from pydantic import BaseModel
+
+
+### Type hints ###
+from pydantic.types import AwareDatetime
+
+
+### Internal modules ###
+from ...apis.data_models.chatboxes import (
+    ChatboxPublic,
+    ChatboxPublicWithUser,
+    ChatboxDelete
+)
+
+
+
+"""
+Client responses format according to FE requirements.
+"""
+class ChatboxesPublicResponse(BaseModel):
+    success:    bool
+    count:      int
+    result:     list[ChatboxPublicWithUser]
+
+
+class ChatboxCreateResponse(BaseModel):
+    success:    bool
+    created:    ChatboxPublic
+
+
+class ChatboxPublicResponse(BaseModel):
+    success:    bool
+    result:     ChatboxPublicWithUser
+
+
+class ChatboxUpdateResponse(BaseModel):
+    success:    bool
+    updated:    ChatboxPublic
+
+
+class ChatboxDeleteResponse(BaseModel):
+    success:    bool
+    deleted:    ChatboxDelete
