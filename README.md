@@ -1,62 +1,80 @@
-
-<h1 align="center">📁 Directory Hierarchy</h1>
+<h1 align="center">Directory Hierarchy</h1>
 
 ```md
 COSMIC-DB/
-├── apis/                   # Core logic for external API integrations and data models
+├── apis/                   # CoSMIC BE API Endpoints (Implementation)
+│   ├── data_models/        # Pydantic models for request validation and API responses
+│   ├── table_models/       # SQLModel ORM table definitions mapped to PostgreSQL database tables
+│   └── base_models.py      # SQLModel base classes inherited by both table and data models
 ├── cores/                  # Central backend logic, database engines, and global configurations
 ├── docker/                 # Containerization resources and orchestration files
 │   ├── configs/            # Non-sensitive configuration files for Docker services
 │   ├── dockerfiles/        # Dockerfile for each services defined in Docker Compose file
 │   └── secrets/            # Secure storage for sensitive data like database credentials
 ├── examples/               # Template files and default values for rapid environment setup
-├── routers/                # RESTful API design
-│   ├── api_endpoints/      # All requests call to API endpoints goes here
-│   └── normal_endpoints/   # All requests call to CoSMIC and related endpoints goes here
-├── utils/                  # Modular helper functions and shared utility scripts
-├── __init__.py             # Package initialization
+├── migrations/             # Alembic database migration scripts and utilities
+│   ├── utils/              # Shell scripts for running migrations automatically on container startup
+│   ├── versions/           # Versioned Alembic migration files for schema creation and data pre-population
+│   └── README              # Alembic-generated readme describing the migration configuration
+├── routers/                # CoSMIC BE API Endpoints (Interface)
+│   ├── api_endpoints/      # Requests to CoSMIC BE's API endpoints goes here
+│   └── normal_endpoints/   # Requests to CoSMIC BE's non-API endpoints goes here
+├── types/                  # Shared type definitions used across the application
+│   └── api_responses/      # Pydantic response wrapper models returned to API clients
+├── utils/                  # Helper functions and shared utility scripts
 ├── .dockerignore           # Files excluded from Docker builds
 ├── .gitattributes          # Git configuration for path attributes
 ├── .gitignore              # Files excluded from version control
 ├── .python-version         # Pinned Python version for the project (benefical to `uv` only)
-├── compose.yaml            # Modern Docker Compose specification for service orchestration
 ├── CONTRIBUTING            # Guidelines for project contributors
 ├── LICENSE                 # Project licensing information (MIT)
-├── main.py                 # Primary entry point for the FastAPI application
+├── README.md               # This's what you're seeing right now
+├── __init__.py             # Package initialisation (mainly for relative import usages)
+├── alembic.ini             # Alembic configuration file defining migration script location and logging
+├── compose.yaml            # Docker Compose specification for orchestrating all BE-only services
+├── main.py                 # Primary entry point for FastAPI application
 ├── pyproject.toml          # Project metadata and dependency definitions
-├── README.md               # This is where you see the project hierachy
 └── uv.lock                 # Pinned dependency lockfile via `uv`
 ```
 
 ---
-
 # Quick Start
 
-Before setting up, ensure you've the appropriate tools installed depending on your chosen setup method. This guide supports:
-- Native setup (running services directly on your machine)
-- Docker setup (running services in isolated containers)
+Before setting up, decide which one is the correct purpose when you get to this modular repository:
+
+> [!NOTE]
+> The rest of this guide covers **Purpose 1**. For **Purpose 2**, refer to the
+> setup instructions in [CoSMIC_Docker repository](https://github.com/TheOpenSI/CoSMIC_Docker)
+
+1. **Module-only**: you are working on this part of the project in isolation (e.g., only CoSMIC BE).
+2. **Full-stack**: you need an end-to-end test run across all services (Front-end &rarr; Back-end &rarr; CoSMIC).
+
+Next, ensure you have the appropriate tools installed depending on your chosen execution method. This guide supports:
+
+- **Native setup** (running CoSMIC BE directly on your machine)
+- **Docker setup** (running CoSMIC BE in isolated containers)
 
 
-| **Tool**   |   **Docker Setup**    |   **Native Setup**    |
-| ---------- | --------------------- | --------------------- |
-| Docker     | ✅ Mandatory          | ❌ Not required       |
-| Python     | ✅ Mandatory (v3.14+) | ✅ Mandatory (v3.14+) |
-| uv         | ✅ Mandatory          | ✅ Mandatory (latest) |
-| PostgreSQL | ⚠️ Optional           | ✅ Mandatory (v18+)   |
-| pgAdmin    | ⚠️ Optional           | ⚠️ Optional           |
+| **Tool**   | **Docker Setup**                       | **Native Setup**                               |
+| ---------- | -------------------------------------- | ---------------------------------------------- |
+| Docker     | $\textcolor{green}{\text{Mandatory}}$  | $\textcolor{red}{\text{Not required}}$         |
+| Python     | $\textcolor{red}{\text{Not required}}$ | $\textcolor{green}{\text{Mandatory (v3.14+)}}$ |
+| uv         | $\textcolor{red}{\text{Not required}}$ | $\textcolor{green}{\text{Mandatory (latest)}}$ |
+| PostgreSQL | $\textcolor{red}{\text{Not required}}$ | $\textcolor{green}{\text{Mandatory (v18+)}}$   |
+| pgAdmin    | $\textcolor{red}{\text{Not required}}$ | $\textcolor{yellow}{\text{Optional}}$          |
 
 
 Then, start by cloning the repository using your preferred method:
 
 ```bash
 # Linux/MacOS
-git clone https://github.com/TheOpenSI/COSMIC-DB.git    # Using HTTPS (recommended for most users)
-git clone git@github.com:TheOpenSI/COSMIC-DB.git        # Using SSH (recommended if you've SSH keys configured)
+git clone https://github.com/TheOpenSI/CoSMIC_DB.git    # Using HTTPS (recommended for most users)
+git clone git@github.com:TheOpenSI/CoSMIC_DB.git        # Using SSH (recommended if you've SSH keys configured)
 ```
 ```ps1
 # Windows
-git clone https://github.com/TheOpenSI/COSMIC-DB.git    # Using HTTPS (recommended for most users)
-git clone git@github.com:TheOpenSI/COSMIC-DB.git        # Using SSH (recommended if you've SSH keys configured)
+git clone https://github.com/TheOpenSI/CoSMIC_DB.git    # Using HTTPS (recommended for most users)
+git clone git@github.com:TheOpenSI/CoSMIC_DB.git        # Using SSH (recommended if you've SSH keys configured)
 ```
 
 Once cloned, navigate to the project root directory:
@@ -70,6 +88,7 @@ cd CoSMIC_DB/
 Set-Location CoSMIC_DB\
 ```
 
+---
 # Understanding Configuration Setup
 
 Our backend expects configuration files to be organised in specific locations depending on your chosen setup method. Understanding this structure will help you prepare the environment correctly.
@@ -104,12 +123,11 @@ Then, copy the following files from the `examples/` directory to the following l
 - `examples/pgadmin_*.example.json` &rarr; `docker/configs/pgadmin_*.json` (contains pgAdmin server definitions and non-sensitive configuration).
 
 > [!TIP]
-> Before finalising these files, review and adjust default values:
+> Before finalising these files, review and adjust default values (Keep default setting if you're unsure about whether or not to modify it):
 > - Password
 > - Username
 > - Port
 > - Etc
-> Keep default setting if you're unsure about whether or not to modify it.
 
 ## Native Configuration
 
@@ -161,7 +179,6 @@ $env:OPENAI_API_KEY=
 ```
 
 ---
-
 # Setup & Execution
 
 > [!TIP]
@@ -188,7 +205,7 @@ From the project root directory, ensure you've completed the steps in the [Docke
 
 ```bash
 # Linux/MacOS
-sudo docker compose up --build -d # Refer to NOTE if running on rootless mode
+docker compose up --build -d # Refer to NOTE if running on rootless mode
 ```
 ```ps1
 # Windows
@@ -206,7 +223,7 @@ Once the containers are running, you can verify that all services are working co
 
 ```bash
 # Linux/MacOS
-sudo docker exec cosmic-infrastructure-postgres psql -U demo # Refer to NOTE if running on rootless mode
+docker exec cosmic-infrastructure-postgres psql -U demo # Refer to NOTE if running on rootless mode
 ```
 ```ps1
 # Windows
