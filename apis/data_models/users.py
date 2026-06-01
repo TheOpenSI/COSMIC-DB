@@ -9,7 +9,6 @@ from pydantic.networks import EmailStr
 
 ### Internal modules ###
 from ..base_models import UserBase
-from ..data_models.roles import RolePublic
 
 
 
@@ -23,17 +22,13 @@ class UserPublic(UserBase):
     create_on:  datetime
 
 
-class UserPublicWithRole(UserPublic):
-    role:       RolePublic | None = None
-
-
 class UserCreate(UserBase):
     email:      EmailStr | None = None
 
 
 class UserUpdate(UserBase):
-    role_id:    UUID | None = None  # pyright: ignore
-    name:       str | None = None   # pyright: ignore
+    role_id:    UUID | None     = None  # pyright: ignore
+    name:       str | None      = None  # pyright: ignore
     email:      EmailStr | None = None
 
 
