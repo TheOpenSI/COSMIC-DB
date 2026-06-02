@@ -1,4 +1,5 @@
 ### Core modules ###
+from pydantic import ConfigDict
 
 
 ### Type hints ###
@@ -22,12 +23,16 @@ class ServicePublic(ServiceBase):
 
 
 class ServiceCreate(ServiceBase):
+    model_config = ConfigDict(extra="forbid")   # pyright: ignore
+
     pass
 
 
 class ServiceUpdate(ServiceBase):
-    name:       str | None = None   # pyright: ignore
-    desc:       str | None = None
+    model_config = ConfigDict(extra="forbid")   # pyright: ignore
+
+    name:       str | None  = None   # pyright: ignore
+    desc:       str | None  = None
     status:     bool | None = True  # pyright: ignore
 
 
