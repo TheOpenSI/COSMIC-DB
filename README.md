@@ -93,6 +93,13 @@ Set-Location CoSMIC_DB\
 
 Our backend expects configuration files to be organised in specific locations depending on your chosen setup method. Understanding this structure will help you prepare the environment correctly.
 
+You can follow the instructions below to understand what the setup.sh script will do, or simply run it to automatically configure your environment for running the backend as a Docker container.
+
+```bash
+# Linux/MacOS
+./setup.sh
+```
+
 ## Docker Configuration
 
 Create the necessary directories first:
