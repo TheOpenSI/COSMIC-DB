@@ -8,7 +8,6 @@ from sqlmodel import SQLModel
 ### Internal modules ###
 from ...apis.data_models.users import (
     UserPublic,
-    UserPublicWithRole,
     UserDelete
 )
 
@@ -20,7 +19,7 @@ Client responses format according to FE requirements.
 class UsersPublicResponse(SQLModel):
     success:    bool
     count:      int
-    result:     list[UserPublicWithRole]
+    result:     list[UserPublic]
 
 
 class UserCreateResponse(SQLModel):
@@ -30,7 +29,7 @@ class UserCreateResponse(SQLModel):
 
 class UserPublicResponse(SQLModel):
     success:    bool
-    result:     UserPublicWithRole
+    result:     UserPublic
 
 
 class UserUpdateResponse(SQLModel):
