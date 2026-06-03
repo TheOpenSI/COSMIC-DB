@@ -116,3 +116,233 @@ class ChatboxBase(SQLModel):
             astext_type=None
         ) # pyright: ignore
     )
+
+
+class EmissionsBase(SQLModel):
+    project_name: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    run_id: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    experiment_id: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    duration: float = Field(
+        nullable=False
+    )
+    emissions: float = Field(
+        nullable=False
+    )
+    emissions_rate: float = Field(
+        nullable=False
+    )
+    cpu_power: float = Field(
+        nullable=False
+    )
+    gpu_power: float = Field(
+        nullable=False
+    )
+    ram_power: float = Field(
+        nullable=False
+    )
+    cpu_energy: float = Field(
+        nullable=False
+    )
+    gpu_energy: float = Field(
+        nullable=False
+    )
+    ram_energy: float = Field(
+        nullable=False
+    )
+    energy_consumed: float = Field(
+        nullable=False
+    )
+    water_consumed: float = Field(
+        nullable=False
+    )
+    country_name: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    country_iso_code: str | None = Field(
+        default=None,
+        max_length=10,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=10,
+            collation=None
+        ) # pyright: ignore
+    )
+    region: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    cloud_provider: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    cloud_region: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    os: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    python_version: str | None = Field(
+        default=None,
+        max_length=50,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=50,
+            collation=None
+        ) # pyright: ignore
+    )
+    codecarbon_version: str | None = Field(
+        default=None,
+        max_length=50,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=50,
+            collation=None
+        ) # pyright: ignore
+    )
+    cpu_count: int | None = Field(
+        default=None,
+        nullable=True
+    )
+    cpu_model: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    gpu_count: int | None = Field(
+        default=None,
+        nullable=True
+    )
+    gpu_model: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    longitude: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    latitude: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    ram_total_size: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    tracking_mode: str | None = Field(
+        default=None,
+        max_length=50,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=50,
+            collation=None
+        ) # pyright: ignore
+    )
+    cpu_utilization_percent: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    gpu_utilization_percent: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    ram_utilization_percent: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    ram_used_gb: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    on_cloud: str | None = Field(
+        default=None,
+        max_length=1,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=1,
+            collation=None
+        ) # pyright: ignore
+    )
+    pue: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    wue: float | None = Field(
+        default=None,
+        nullable=True
+    )
+    user_id: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
+    chat_id: str | None = Field(
+        default=None,
+        max_length=255,
+        nullable=True,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
