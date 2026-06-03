@@ -1,4 +1,5 @@
 ### Core modules ###
+from pydantic import ConfigDict
 
 
 ### Type hints ###
@@ -22,10 +23,14 @@ class RolePublic(RoleBase):
 
 
 class RoleCreate(RoleBase):
+    model_config = ConfigDict(extra="forbid")   # pyright: ignore
+
     name:       str
 
 
 class RoleUpdate(RoleBase):
+    model_config = ConfigDict(extra="forbid")   # pyright: ignore
+
     name:       str | None = None # pyright: ignore
     desc:       str | None = None
 

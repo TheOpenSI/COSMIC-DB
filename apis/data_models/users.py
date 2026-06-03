@@ -1,4 +1,5 @@
 ### Core modules ###
+from pydantic import ConfigDict
 
 
 ### Type hints ###
@@ -23,12 +24,16 @@ class UserPublic(UserBase):
 
 
 class UserCreate(UserBase):
+    model_config = ConfigDict(extra="forbid")   # pyright: ignore
+
     email:      EmailStr | None = None
 
 
 class UserUpdate(UserBase):
+    model_config = ConfigDict(extra="forbid")   # pyright: ignore
+
     role_id:    UUID | None     = None  # pyright: ignore
-    name:       str | None      = None  # pyright: ignore
+    name:       str | None      = None   # pyright: ignore
     email:      EmailStr | None = None
 
 
