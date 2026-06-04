@@ -9,12 +9,15 @@ from sqlmodel import select
 
 ### Type hints ###
 from uuid import UUID
-from typing_extensions import Any, Sequence
+from typing_extensions import Annotated, Any, Sequence
 from ...types.tags import APITag
+from fastapi import Query
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
+from ...apis.table_models.users import Users
+from ...apis.table_models.chatboxes import Chatboxes
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
     EmissionsCreate,
@@ -25,6 +28,7 @@ from ...types.api_responses.emissions import (
     EmissionsPublicSingleResponse,
     EmissionsDeleteResponse,
 )
+from ...types.filter_params_emissions import EmissionsFilterParams
 
 
 emissions_v1_router: APIRouter = APIRouter(
@@ -67,6 +71,20 @@ async def create_emission_v1(
             obj=emission,
             strict=True
         )
+        user = session.get(entity=Users, ident=emission_db.user_id) # to validate if the provided user_id exists in the db
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user_id: User does not exist!"
+            )
+        chatbox = session.get(entity=Chatboxes, ident=emission_db.chat_id) # to validate if the provided chat_id exists in the db
+        if chatbox is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid chat_id: Chatbox does not exist!"
+            )
+        
+        
 
         session.add(instance=emission_db)
         session.commit()
@@ -76,6 +94,10 @@ async def create_emission_v1(
             "success": True,
             "created": emission_db
         }
+    
+    except HTTPException as http_exc:
+            raise http_exc    # to raise the 400 error for invalid user_id or chat_id without being caught by the generic exception handler below
+        
 
     except Exception as fastapi_err:
         raise HTTPException(
@@ -88,69 +110,37 @@ async def create_emission_v1(
 
 
 @emissions_v1_router.get(
-    path="/{emission_id}",
+    path="/",
     status_code=status.HTTP_200_OK,
-    response_model=EmissionsPublicSingleResponse
+    response_model=EmissionsPublicResponse
 )
-async def read_emission_v1(
-    emission_id: UUID,
-    session: SessionDependency
-) -> Any:
-    emission_view: Emissions | None = session.get(
-        entity=Emissions,
-        ident=emission_id
-    )
-
-    if emission_view is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Emission record not found!"
+async def read_emissions_v1(
+    session: SessionDependency,
+    filter_query: Annotated[
+        EmissionsFilterParams,
+        Query(
+            title="Emissions Filter",
+            description="Filter emissions by user_id, chat_id or emission_id.",
+            strict=True
         )
-
-    return {
-        "success": True,
-        "result": emission_view
-    }
-
-
-@emissions_v1_router.get(
-    path="/user/{user_id}",
-    status_code=status.HTTP_200_OK,
-    response_model=EmissionsPublicResponse
-)
-async def read_emissions_by_user_v1(
-    user_id: str,
-    session: SessionDependency
+    ]
 ) -> Any:
-    emissions_view: Sequence[Emissions] = session.exec(
-        statement=select(Emissions).where(Emissions.user_id == user_id)
-    ).all()
-    total: int = len(emissions_view)
+    statement = select(Emissions)
+
+    if filter_query.emission_id is not None:
+        statement = statement.where(Emissions.id == filter_query.emission_id)
+
+    if filter_query.user_id is not None:
+        statement = statement.where(Emissions.user_id == filter_query.user_id)
+
+    if filter_query.chat_id is not None:
+        statement = statement.where(Emissions.chat_id == filter_query.chat_id)
+
+    emissions_view: Sequence[Emissions] = session.exec(statement=statement).all()
 
     return {
         "success": True,
-        "count": total,
-        "result": emissions_view
-    }
-
-
-@emissions_v1_router.get(
-    path="/chat/{chat_id}",
-    status_code=status.HTTP_200_OK,
-    response_model=EmissionsPublicResponse
-)
-async def read_emissions_by_chat_v1(
-    chat_id: str,
-    session: SessionDependency
-) -> Any:
-    emissions_view: Sequence[Emissions] = session.exec(
-        statement=select(Emissions).where(Emissions.chat_id == chat_id)
-    ).all()
-    total: int = len(emissions_view)
-
-    return {
-        "success": True,
-        "count": total,
+        "count": len(emissions_view),
         "result": emissions_view
     }
 

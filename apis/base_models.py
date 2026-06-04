@@ -276,21 +276,18 @@ class EmissionsBase(SQLModel):
         default=None,
         nullable=True
     )
-    user_id: str | None = Field(
-        default=None,
-        max_length=255,
-        nullable=True,
-        sa_type=VARCHAR(
-            length=255,
-            collation=None
+    user_id: UUID = Field(
+        nullable=False,
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
         ) # pyright: ignore
     )
-    chat_id: str | None = Field(
+    chat_id: UUID | None = Field(
         default=None,
-        max_length=255,
         nullable=True,
-        sa_type=VARCHAR(
-            length=255,
-            collation=None
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
         ) # pyright: ignore
     )
