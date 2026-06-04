@@ -6,8 +6,8 @@ COSMIC-DB/
 │   ├── data_models/        # Pydantic models for request validation and API responses
 │   ├── table_models/       # SQLModel ORM table definitions mapped to PostgreSQL database tables
 │   └── base_models.py      # SQLModel base classes inherited by both table and data models
-├── bins/                  # bash scripts
-│   └── setup.sh           # executable script to set up enviroment 
+├── bins/                   # bash scripts
+│   └── setup.sh            # executable script to set up enviroment 
 ├── cores/                  # Central backend logic, database engines, and global configurations
 ├── docker/                 # Containerization resources and orchestration files
 │   ├── configs/            # Non-sensitive configuration files for Docker services
