@@ -13,6 +13,7 @@ from ..routers.api_endpoints.roles import roles_v1_router
 from ..routers.api_endpoints.services import services_v1_router
 from ..routers.api_endpoints.configurations import configs_v1_router
 from ..routers.api_endpoints.chatboxes import chatboxes_v1_router
+from ..routers.api_endpoints.emissions import emissions_v1_router
 # from ..routers.api_endpoints.models import models_v1_router
 # from ..routers.api_endpoints.statistics import statistics_v1_router
 
@@ -63,5 +64,6 @@ cosmic_app.include_router(router=roles_v1_router)
 cosmic_app.include_router(router=services_v1_router)
 cosmic_app.include_router(router=configs_v1_router)
 cosmic_app.include_router(router=chatboxes_v1_router)
+cosmic_app.include_router(router=emissions_v1_router)
 # cosmic_app.include_router(router=models_v1_router)
 # cosmic_app.include_router(router=statistics_v1_router)
