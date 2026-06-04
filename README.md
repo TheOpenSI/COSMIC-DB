@@ -6,8 +6,7 @@ COSMIC-DB/
 │   ├── data_models/        # Pydantic models for request validation and API responses
 │   ├── table_models/       # SQLModel ORM table definitions mapped to PostgreSQL database tables
 │   └── base_models.py      # SQLModel base classes inherited by both table and data models
-├── bins/                   # bash scripts
-│   └── setup.sh            # executable script to set up enviroment 
+├── bins/                   # Helper scripts, 3rd vendor binaries, etc
 ├── cores/                  # Central backend logic, database engines, and global configurations
 ├── docker/                 # Containerization resources and orchestration files
 │   ├── configs/            # Non-sensitive configuration files for Docker services
@@ -49,12 +48,12 @@ Before setting up, decide which one is the correct purpose when you get to this 
 > setup instructions in [CoSMIC_Docker repository](https://github.com/TheOpenSI/CoSMIC_Docker)
 
 1. **Module-only**: you are working on this part of the project in isolation (e.g., only CoSMIC BE).
-2. **Full-stack**: you need an end-to-end test run across all services (Front-end &rarr; Back-end &rarr; CoSMIC).
+2. **Full-stack**: you need an end-to-end test run across all services (**Front-end** &rarr; **Back-end** &rarr; **CoSMIC**).
 
 Next, ensure you have the appropriate tools installed depending on your chosen execution method. This guide supports:
 
-- **Native setup** (running CoSMIC BE directly on your machine)
-- **Docker setup** (running CoSMIC BE in isolated containers)
+- **Native setup** (running **CoSMIC BE** directly on your machine)
+- **Docker setup** (running **CoSMIC BE** in isolated containers)
 
 
 | **Tool**   | **Docker Setup**                       | **Native Setup**                               |
@@ -95,11 +94,18 @@ Set-Location CoSMIC_DB\
 
 Our backend expects configuration files to be organised in specific locations depending on your chosen setup method. Understanding this structure will help you prepare the environment correctly.
 
-You can follow the instructions below to understand what the setup.sh script will do, or simply run it to automatically configure your environment for running the backend as a Docker container.
+> [!TIP]
+> You can follow the instructions below to understand what these 2 scripts will
+> do, or simply run it to automatically configure your environment for running
+> BE as a Docker container.
 
 ```bash
 # Linux/MacOS
 ./bins/setup.sh
+```
+```ps1
+# Windows
+.\bins\setup.ps1
 ```
 
 ## Docker Configuration
