@@ -37,24 +37,24 @@ emissions_v1_router: APIRouter = APIRouter(
 )
 
 
-@emissions_v1_router.get(
-    path="/",
-    status_code=status.HTTP_200_OK,
-    response_model=EmissionsPublicResponse
-)
-async def read_emissions_v1(
-    session: SessionDependency
-) -> Any:
-    emissions_view: Sequence[Emissions] = session.exec(
-        statement=select(Emissions)
-    ).all()
-    total: int = len(emissions_view)
+# @emissions_v1_router.get(
+#     path="/",
+#     status_code=status.HTTP_200_OK,
+#     response_model=EmissionsPublicResponse
+# )
+# async def read_emissions_v1(
+#     session: SessionDependency
+# ) -> Any:
+#     emissions_view: Sequence[Emissions] = session.exec(
+#         statement=select(Emissions)
+#     ).all()
+#     total: int = len(emissions_view)
 
-    return {
-        "success": True,
-        "count": total,
-        "result": emissions_view
-    }
+#     return {
+#         "success": True,
+#         "count": total,
+#         "result": emissions_view
+#     }
 
 
 @emissions_v1_router.post(
@@ -125,25 +125,34 @@ async def read_emissions_v1(
         )
     ]
 ) -> Any:
-    statement = select(Emissions)
+    try:
+        statement = select(Emissions)
 
-    if filter_query.emission_id is not None:
-        statement = statement.where(Emissions.id == filter_query.emission_id)
+        if filter_query.emission_id is not None:
+            statement = statement.where(Emissions.id == filter_query.emission_id)
 
-    if filter_query.user_id is not None:
-        statement = statement.where(Emissions.user_id == filter_query.user_id)
+        if filter_query.user_id is not None:
+            statement = statement.where(Emissions.user_id == filter_query.user_id)
 
-    if filter_query.chat_id is not None:
-        statement = statement.where(Emissions.chat_id == filter_query.chat_id)
+        if filter_query.chat_id is not None:
+            statement = statement.where(Emissions.chat_id == filter_query.chat_id)
 
-    emissions_view: Sequence[Emissions] = session.exec(statement=statement).all()
+        emissions_view: Sequence[Emissions] = session.exec(statement=statement).all()
 
-    return {
-        "success": True,
-        "count": len(emissions_view),
-        "result": emissions_view
-    }
+        return {
+            "success": True,
+            "count": len(emissions_view),
+            "result": emissions_view
+        }
 
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "Internal Server Error",
+                "message": str(e)   
+            }
+        )
 
 @emissions_v1_router.delete(
     path="/{emission_id}",
