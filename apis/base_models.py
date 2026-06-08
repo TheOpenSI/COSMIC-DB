@@ -283,11 +283,3 @@ class EmissionsBase(SQLModel):
             native_uuid=True
         ) # pyright: ignore
     )
-    chat_id: UUID | None = Field(
-        default=None,
-        nullable=True,
-        sa_type=Uuid(
-            as_uuid=True,
-            native_uuid=True
-        ) # pyright: ignore
-    )
