@@ -119,14 +119,13 @@ class ChatboxBase(SQLModel):
 
 
 class EmissionsBase(SQLModel):
-    run_id: str = Field(
-        max_length=255,
+    run_id: UUID = Field(
         nullable=False,
-        sa_type=VARCHAR(
-            length=255,
-            collation=None
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
         ) # pyright: ignore
-    )
+    )   
     duration: float = Field(
         nullable=False
     )

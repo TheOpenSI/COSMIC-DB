@@ -8,10 +8,10 @@ from sqlmodel import select
 
 
 ### Type hints ###
-from uuid import UUID
 from typing_extensions import Annotated, Any, Sequence
 from ...types.tags import APITag
 from fastapi import Query
+from pydantic.types import UUID7
 
 
 ### Internal modules ###
@@ -96,7 +96,7 @@ async def read_emissions_v1(
         EmissionsFilterParams,
         Query(
             title="Emissions Filter",
-            description="Filter emissions by user_id, chat_id or emission_id.",
+            description="Filter emissions by user_id or emission_id.",
             strict=True
         )
     ]
@@ -133,7 +133,7 @@ async def read_emissions_v1(
     response_model=EmissionsDeleteResponse
 )
 async def delete_emission_v1(
-    emission_id: UUID,
+    emission_id: UUID7,
     session: SessionDependency
 ) -> Any:
     emission_gone: Emissions | None = session.get(

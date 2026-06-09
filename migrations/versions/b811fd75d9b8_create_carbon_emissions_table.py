@@ -25,7 +25,7 @@ def upgrade() -> None:
         'emissions',
         sa.Column('id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
         sa.Column('timestamp', sa.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
-        sa.Column('run_id', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('run_id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
         sa.Column('duration', sa.Float(), autoincrement=False, nullable=False),
         sa.Column('emissions', sa.Float(), autoincrement=False, nullable=False),
         sa.Column('emissions_rate', sa.Float(), autoincrement=False, nullable=False),
@@ -56,9 +56,9 @@ def upgrade() -> None:
         sa.Column('on_cloud', sa.VARCHAR(length=1, collation=None), autoincrement=False, nullable=True),
         sa.Column('pue', sa.Float(), autoincrement=False, nullable=True),
         sa.Column('wue', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('user_id', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('chat_id', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
+        sa.Column('user_id', sa.UUID(as_uuid=True), autoincrement=False, nullable=True),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_EMISSIONS_ID')),
+        sa.ForeignKeyConstraint(columns=['user_id'], refcolumns=['users.id'], name=op.f(name='FK_EMISSIONS_USER_ID'), onupdate='CASCADE', ondelete='CASCADE', match='FULL'),
         if_not_exists=True
     )
 

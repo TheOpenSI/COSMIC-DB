@@ -4,6 +4,7 @@ from sqlmodel import (
 )
 from sqlalchemy.schema import (
     PrimaryKeyConstraint,
+    ForeignKeyConstraint
 )
 
 
@@ -29,12 +30,22 @@ class Emissions(EmissionsBase, table=True):
     __tablename__: str = "emissions" # pyright: ignore
     __table_args__: tuple[
         PrimaryKeyConstraint,
+        ForeignKeyConstraint
     ] = (
         PrimaryKeyConstraint(
             "id",
             name="PK_EMISSIONS_ID"
         ),
+        ForeignKeyConstraint(
+            columns=["user_id"],
+            refcolumns=["users.id"],
+            name="FK_EMISSIONS_USER_ID",
+            onupdate="CASCADE",
+            ondelete="CASCADE",
+            match="FULL"
+        )
     )
+
 
     id: UUID = Field(
         default_factory=(lambda: uuid7()),

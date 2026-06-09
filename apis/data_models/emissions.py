@@ -32,7 +32,7 @@ class EmissionsCreate(EmissionsBase):
 class EmissionsUpdate(EmissionsBase):
     model_config = ConfigDict(extra="forbid")           # pyright: ignore
 
-    run_id: str | None                          = None  # pyright: ignore
+    run_id: UUID7 | None                          = None  # pyright: ignore
     duration: float | None                      = None  # pyright: ignore
     emissions: float | None                     = None  # pyright: ignore
     emissions_rate: float | None                = None  # pyright: ignore
