@@ -19,3 +19,4 @@ class APITag(Enum):
     service     = "Services API Endpoint"
     config      = "Configurations API Endpoint"
     chatbox     = "Chatboxes API Endpoint"
+    emission    = "Emissions API Endpoint"
