@@ -2,31 +2,37 @@
 from fastapi import (
     APIRouter,
     HTTPException,
+    Query,
     status
 )
 from sqlmodel import select
 
 
 ### Type hints ###
-from typing_extensions import Annotated, Any, Sequence
+from typing_extensions import (
+    Annotated,
+    Any,
+    Sequence
+)
 from ...types.tags import APITag
-from fastapi import Query
 from pydantic.types import UUID7
+from sqlalchemy.exc import IntegrityError
+from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
 from ...apis.table_models.users import Users
-from ...apis.table_models.chatboxes import Chatboxes
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
-    EmissionsCreate,
+    # For validation (Data Model)
+    EmissionsCreate
 )
 from ...types.api_responses.emissions import (
+    # For client responses (Responses Model)
     EmissionsPublicResponse,
     EmissionsCreateResponse,
-    EmissionsPublicSingleResponse,
-    EmissionsDeleteResponse,
+    EmissionsDeleteResponse
 )
 from ...types.filter_params_emissions import EmissionsFilterParams
 
@@ -36,53 +42,6 @@ emissions_v1_router: APIRouter = APIRouter(
     tags=[APITag.emission]
 )
 
-
-
-
-
-@emissions_v1_router.post(
-    path="/",
-    status_code=status.HTTP_201_CREATED,
-    response_model=EmissionsCreateResponse
-)
-async def create_emission_v1(
-    emission: EmissionsCreate,
-    session: SessionDependency
-) -> Any:
-    try:
-        emission_db: Emissions = Emissions.model_validate(
-            obj=emission,
-            strict=True
-        )
-        user = session.get(entity=Users, ident=emission_db.user_id) # to validate if the provided user_id exists in the db
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid user_id: User does not exist!"
-            )
-        
-        
-        session.add(instance=emission_db)
-        session.commit()
-        session.refresh(instance=emission_db)
-
-        return {
-            "success": True,
-            "created": emission_db
-        }
-    
-    except HTTPException as http_exc:
-            raise http_exc    # to raise the 400 error for invalid user_id or chat_id without being caught by the generic exception handler below
-        
-
-    except Exception as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": str(object=fastapi_err)
-            }
-        )
 
 
 @emissions_v1_router.get(
@@ -101,31 +60,85 @@ async def read_emissions_v1(
         )
     ]
 ) -> Any:
+    statement = select(Emissions)
+
+    if filter_query.emission_id is not None:
+        statement = statement.where(Emissions.id == filter_query.emission_id)
+
+    if filter_query.user_id is not None:
+        statement = statement.where(Emissions.user_id == filter_query.user_id)
+
+    emissions_view: Sequence[Emissions] = session.exec(statement=statement).all()
+
+    return {
+        "success": True,
+        "count": len(emissions_view),
+        "result": emissions_view
+    }
+
+
+@emissions_v1_router.post(
+    path="/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=EmissionsCreateResponse
+)
+async def create_emission_v1(
+    emission: EmissionsCreate,
+    session: SessionDependency
+) -> Any:
     try:
-        statement = select(Emissions)
+        emission_db: Emissions = Emissions.model_validate(
+            obj=emission,
+            strict=True
+        )
 
-        if filter_query.emission_id is not None:
-            statement = statement.where(Emissions.id == filter_query.emission_id)
+        # to validate if the provided user_id exists in the db
+        user = session.get(entity=Users, ident=emission_db.user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user_id: User does not exist!"
+            )
 
-        if filter_query.user_id is not None:
-            statement = statement.where(Emissions.user_id == filter_query.user_id)
-
-        emissions_view: Sequence[Emissions] = session.exec(statement=statement).all()
+        session.add(instance=emission_db)
+        session.commit()
+        session.refresh(instance=emission_db)
 
         return {
             "success": True,
-            "count": len(emissions_view),
-            "result": emissions_view
+            "created": emission_db
         }
 
-    except Exception as e:
+
+    except IntegrityError as psycopg_err:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": f"{psycopg_err}"
+            }
+        )
+
+
+    except TypeError as python_err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
-                "status": "Internal Server Error",
-                "message": str(e)   
+                "status": "500 - Type Error",
+                "message": f"{python_err}"
             }
         )
+
+
+    except ResponseValidationError as fastapi_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "500 - Response Validation Error",
+                "message": f"{fastapi_err}"
+            }
+        )
+
 
 @emissions_v1_router.delete(
     path="/{emission_id}",
@@ -144,13 +157,14 @@ async def delete_emission_v1(
     if emission_gone is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Emission record not found!"
+            detail="Emission Record Not Found!"
         )
 
-    session.delete(instance=emission_gone)
-    session.commit()
+    else:
+        session.delete(instance=emission_gone)
+        session.commit()
 
-    return {
-        "success": True,
-        "deleted": emission_gone
-    }
+        return {
+            "success": True,
+            "deleted": emission_gone
+        }

@@ -27,16 +27,6 @@ class EmissionsCreateResponse(BaseModel):
     created:    EmissionsPublic
 
 
-class EmissionsPublicSingleResponse(BaseModel):
-    success:    bool
-    result:     EmissionsPublic
-
-
-class EmissionsUpdateResponse(BaseModel):
-    success:    bool
-    updated:    EmissionsPublic
-
-
 class EmissionsDeleteResponse(BaseModel):
     success:    bool
     deleted:    EmissionsDelete
