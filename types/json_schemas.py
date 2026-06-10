@@ -1,6 +1,6 @@
 ### Core modules ###
 from pydantic import (
-    BaseModel, 
+    BaseModel,
     ConfigDict
 )
 
@@ -14,9 +14,10 @@ from ..cores.db import cosmic_db_configs
 
 
 
-#=============================================================================#
-#   Pydantic validation for parent JSONB fields for default configurations    #
-#=============================================================================#
+#==============================================================================#
+#       Pydantic validation for incoming requests that modify data in          #
+#                   'Configurations' db table JSONB column(s)                  #
+#==============================================================================#
 class GeneralConfigs(BaseModel):
     """docstring for GeneralConfigs."""
     model_config = ConfigDict(extra="forbid")
@@ -25,16 +26,16 @@ class GeneralConfigs(BaseModel):
     model:                  str         = "qwen2.5:7b"
     is_quantised:           bool        = False
     seed:                   int         = 0
-    # TODO:
-    # These 2 need to be defined and stored from an external mounted volume data
-    # That's related to CoSMIC container. After a PR for this create and merged,
-    # change this to `NOTE` and adjust the comment explanation.
+    # NOTE:
+    # These 2 fields need to be defined and stored from an external mounted
+    # volume data that's related to CoSMIC container.
     default_knowledge_path: str         = "/app/data/default/"
     temp_knowledge_path:    str         = "/app/data/temp/"
     # NOTE:
-    # Read specified key's value from `cosmic_config.env` file (for now until I
-    # think of a better, more secure solution).
-    api_key:                str | None  = cosmic_db_configs["OPENAI_API_KEY"]
+    # This read the specified key's value provided in `cores/cosmic_config.env`
+    # file. I don't think this's the right solution to go for but it's the good
+    # enough solution for now.
+    api_key:                str | None  = cosmic_db_configs.get("OPENAI_API_KEY", None)
 
 
 class QueryAnalyserConfigs(GeneralConfigs):
@@ -42,28 +43,26 @@ class QueryAnalyserConfigs(GeneralConfigs):
     model_config = ConfigDict(extra="forbid")
 
     # NOTE:
-    # On 'Configs' page, there'll be an option to apply similar configs as the
-    # general unless wanting to customise manually by the admin user.
-    model:          str     = "llama3.3:70b"
-    is_quantised:   bool    = True
+    # On FE, 'Query Analyser' setting will be pre-filled by a default enabled
+    # button that apply the same configs from 'General' setting. Unless some
+    # special modifications needed (only 'Admin' can do this), this's the
+    # default behaviour.
+    pass
 
 
-
-#=============================================================================#
-#       Pydantic validation for default configurations (JSONB type)           #
-#=============================================================================#
 class ConfigurationSchema(BaseModel):
     """docstring for ConfigurationSchema."""
     model_config = ConfigDict(extra="forbid")
 
     general:        GeneralConfigs
     query_analyser: QueryAnalyserConfigs
-      
 
 
-#=============================================================================#
-#           Pydantic validation for chat history format (JSONB type)          #
-#=============================================================================#
+
+#==============================================================================#
+#       Pydantic validation for incoming requests that modify data in          #
+#                   'Chatboxes' db table JSONB column(s)                       #
+#==============================================================================#
 class ChatHistorySchema(BaseModel):
     """docstring for ChatHistorySchema."""
     model_config = ConfigDict(extra="forbid")
