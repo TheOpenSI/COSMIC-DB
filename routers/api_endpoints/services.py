@@ -13,6 +13,7 @@ from sqlmodel import (
 
 
 ### Type hints ###
+from sqlmodel.sql.expression import SelectOfScalar
 from typing_extensions import (
     Any,
     Sequence
@@ -61,61 +62,29 @@ async def read_services_v1(
         ServiceFilterParams,
         Query(
             title="Services Filter",
-            description="filter by active/deactive services.",
+            description="filter by active/deactive RAG enabled/disabled services.",
             strict=True
         )
     ]
 ) -> Any:
-    if filter_query.active is None:
-        services_view: Sequence[Services] = session.exec(statement=select(Services)).all()
-        total_services: int = len(services_view)
+    # Dynamic build SELECT queries with WHERE clause for filtering
+    service_stmt: SelectOfScalar[Services] = select(Services)
 
-        if (total_services == 0):
-            return {
-                "success": True,
-                "count": total_services, # 0
-                "result": services_view
-            }
-        else:
-            return {
-                "success": True,
-                "count": total_services, # all fetchable service data
-                "result": services_view
-            }
+    if filter_query.active is not None:
+        service_stmt = service_stmt.where(Services.status == filter_query.active)
 
-    elif filter_query.active:
-        active_services_view: Sequence[Services] = session.exec(statement=select(Services).where(Services.status == True)).all()
-        total_services: int = len(active_services_view)
+    if filter_query.rag_enable is not None:
+        service_stmt = service_stmt.where(Services.rag_capability == filter_query.rag_enable)
 
-        if (total_services == 0):
-            return {
-                "success": True,
-                "count": total_services, # 0
-                "result": active_services_view
-            }
-        else:
-            return {
-                "success": True,
-                "count": total_services, # all fetchable active service data
-                "result": active_services_view
-            }
+    # Final result will differ depends on which SELECT query being executed if
+    # filter applied or not
+    services_view: Sequence[Services] = session.exec(statement=service_stmt).all()
 
-    else:
-        deactive_services_view: Sequence[Services] = session.exec(statement=select(Services).where(Services.status == False)).all()
-        total_services: int = len(deactive_services_view)
-
-        if (total_services == 0):
-            return {
-                "success": True,
-                "count": total_services, # 0
-                "result": deactive_services_view
-            }
-        else:
-            return {
-                "success": True,
-                "count": total_services, # all fetchable deactive service data
-                "result": deactive_services_view
-            }
+    return {
+        "success": True,
+        "count": len(services_view),
+        "result": services_view
+    }
 
 
 @services_v1_router.post(
@@ -130,7 +99,7 @@ async def create_service_v1(
     try:
         # Only perform INSERT queries if incoming data not exist in the db
         service_stored_data: Services | None = session.exec(
-            select(Services).where(
+            statement=select(Services).where(
                 or_(
                     Services.name == service.name,
                     Services.desc == service.desc

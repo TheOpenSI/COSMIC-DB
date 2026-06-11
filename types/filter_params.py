@@ -1,5 +1,8 @@
 ### Core modules ###
-from sqlmodel import Field, SQLModel
+from sqlmodel import (
+    Field,
+    SQLModel
+)
 
 
 ### Type hints ###
@@ -17,4 +20,5 @@ class ServiceFilterParams(SQLModel):
     # https://fastapi.tiangolo.com/tutorial/query-param-models/#forbid-extra-query-parameters 
     model_config = {"extra": "forbid"}
 
-    active: bool | None = Field(default=None)
+    active:     bool | None = Field(default=None)
+    rag_enable: bool | None = Field(default=None)
