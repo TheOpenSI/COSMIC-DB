@@ -74,6 +74,14 @@ class ServiceBase(SQLModel):
             collation=None
         ) # pyright: ignore
     )
+    status: bool = Field(
+        default=True,
+        nullable=False,
+        sa_type=Boolean(
+            create_constraint=False,
+            name=None
+        ) # pyright: ignore
+    )
     rag_capability: bool = Field(
         default=False,
         nullable=False,

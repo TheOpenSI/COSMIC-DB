@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.Column('id', sa.SMALLINT(), nullable=False),
         sa.Column('name', sa.VARCHAR(length=100, collation=None), autoincrement=False, nullable=False),
         sa.Column('desc', sa.TEXT(length=None, collation=None), autoincrement=False, nullable=True),
-        sa.Column('status', sa.BOOLEAN(create_constraint=False, name=None), autoincrement=False, nullable=False, default=False),
+        sa.Column('status', sa.BOOLEAN(create_constraint=False, name=None), autoincrement=False, nullable=False, default=True),
         sa.Column('rag_capability', sa.BOOLEAN(create_constraint=False, name=None), autoincrement=False, nullable=False, default=False),
         sa.Column('create_on', sa.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_SERVICE_ID')),

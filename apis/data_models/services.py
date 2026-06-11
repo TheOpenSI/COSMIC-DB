@@ -17,7 +17,6 @@ To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
 class ServicePublic(ServiceBase):
-    status:     bool = False
     id:         PositiveInt
     create_on:  datetime
 
@@ -38,7 +37,5 @@ class ServiceUpdate(ServiceBase):
 
 
 class ServiceDelete(ServiceBase):
-     # WARNING: === ONLY DELETE DEACTIVATED SERVICES ===
-    status:     bool = False
     id:         PositiveInt
     create_on:  datetime
