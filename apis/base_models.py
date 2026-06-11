@@ -10,7 +10,8 @@ from uuid import UUID
 from sqlalchemy.sql.sqltypes import (
     VARCHAR,
     Text,
-    Uuid
+    Uuid,
+    Boolean
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from ..types.json_schemas import (
@@ -71,6 +72,14 @@ class ServiceBase(SQLModel):
         sa_type=Text(
             length=None,
             collation=None
+        ) # pyright: ignore
+    )
+    rag_capability: bool = Field(
+        default=False,
+        nullable=False,
+        sa_type=Boolean(
+            create_constraint=False,
+            name=None
         ) # pyright: ignore
     )
 
