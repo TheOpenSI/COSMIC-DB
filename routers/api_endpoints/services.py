@@ -52,6 +52,19 @@ services_v1_router: APIRouter = APIRouter(
 
 
 service_additional_responses: dict[int | str, dict[str, Any]] = {
+    403: {
+        "description": "Active Service Deletion Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "403 - Forbidden",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
     404: {
         "description": "Non Exist Data Error",
         "content": {
@@ -273,10 +286,20 @@ async def delete_service_v1(
         )
 
     else:
-        session.delete(instance=service_gone)
-        session.commit()
+        if service_gone.status != False:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "status": "403 - Forbidden",
+                    "message": "Please disable the service first before peforming this action!!"
+                }
+            )
 
-        return {
-            "success": True,
-            "deleted": service_gone
-        }
+        else:
+            session.delete(instance=service_gone)
+            session.commit()
+
+            return {
+                "success": True,
+                "deleted": service_gone
+            }
