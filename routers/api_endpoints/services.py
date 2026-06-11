@@ -183,10 +183,17 @@ async def update_service_v1(
             detail="Service Not Found!"
         )
     else:
-        service_data: dict[str, Any] = service.model_dump(exclude_unset=True)
-        service_db.sqlmodel_update(obj=service_data)
+        service_data: dict[str, Any] = service.model_dump(
+            mode="json",
+            exclude_unset=True
+        )
 
-        session.add(instance=service_db)
+        # Only perform UPDATE queries if incoming data differ from stored data
+        for (service_column, service_data) in service_data.items():
+            if service_data != getattr(service_db, service_column):
+                service_db.sqlmodel_update(obj=service_data)
+                session.add(instance=service_db)
+
         session.commit()
         session.refresh(instance=service_db)
 
