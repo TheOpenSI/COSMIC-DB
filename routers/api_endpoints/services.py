@@ -51,6 +51,49 @@ services_v1_router: APIRouter = APIRouter(
 )
 
 
+service_additional_responses: dict[int | str, dict[str, Any]] = {
+    404: {
+        "description": "Non Exist Data Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "404 - Not Found",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
+    409: {
+        "description": "Integrity Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "409 - Conflict",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
+    422: {
+        "description": "Validation Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "422 - Unprocessable Content",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 @services_v1_router.get(
     path="/",
     status_code=status.HTTP_200_OK,
@@ -90,7 +133,8 @@ async def read_services_v1(
 @services_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ServiceCreateResponse
+    response_model=ServiceCreateResponse,
+    responses=service_additional_responses
 )
 async def create_service_v1(
     service: ServiceCreate,
@@ -145,7 +189,8 @@ async def create_service_v1(
 @services_v1_router.get(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ServicePublicResponse
+    response_model=ServicePublicResponse,
+    responses=service_additional_responses
 )
 async def read_service_v1(
     service_id: PositiveInt,
@@ -168,7 +213,8 @@ async def read_service_v1(
 @services_v1_router.patch(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ServiceUpdateResponse
+    response_model=ServiceUpdateResponse,
+    responses=service_additional_responses
 )
 async def update_service_v1(
     service_id: PositiveInt,
@@ -206,19 +252,24 @@ async def update_service_v1(
 @services_v1_router.delete(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ServiceDeleteResponse
+    response_model=ServiceDeleteResponse,
+    responses=service_additional_responses
 )
 async def delete_service_v1(
     service_id: PositiveInt,
     session: SessionDependency
 ) -> Any:
-    service_gone: Services | None = session.get(entity=Services, ident=service_id)
+    service_gone: Services | None = session.get(
+        entity=Services,
+        ident=service_id
+    )
 
     if service_gone is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service Not Found!"
         )
+
     else:
         session.delete(instance=service_gone)
         session.commit()
