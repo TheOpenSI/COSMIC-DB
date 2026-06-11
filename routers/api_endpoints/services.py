@@ -203,6 +203,7 @@ async def read_service_v1(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service Not Found!"
         )
+
     else:
         return {
             "success": True,
@@ -228,6 +229,7 @@ async def update_service_v1(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service Not Found!"
         )
+
     else:
         service_data: dict[str, Any] = service.model_dump(
             mode="json",
