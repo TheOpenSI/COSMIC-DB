@@ -6,13 +6,20 @@ from fastapi import (
     Query,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    or_,
+    select
+)
 
 
 ### Type hints ###
-from typing_extensions import Any, Sequence
+from typing_extensions import (
+    Any,
+    Sequence
+)
 from ...types.tags import APITag
 from pydantic.types import PositiveInt
+from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
@@ -121,23 +128,47 @@ async def create_service_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        service_db: Services = Services.model_validate(obj=service, strict=True)
+        # Only perform INSERT queries if incoming data not exist in the db
+        service_stored_data: Services | None = session.exec(
+            select(Services).where(
+                or_(
+                    Services.name == service.name,
+                    Services.desc == service.desc
+                )
+            )
+        ).first()
 
-        session.add(instance=service_db)
-        session.commit()
-        session.refresh(instance=service_db)
+        if service_stored_data:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": "A service with similar 'name' or 'desc' column data already exists"
+                    }
+                )
 
-        return {
-            "success": True,
-            "created": service_db
-        }
+        else:
+            service_db: Services = Services.model_validate(
+                obj=service,
+                strict=True
+            )
 
-    except Exception as fastapi_err:
+            session.add(instance=service_db)
+            session.commit()
+            session.refresh(instance=service_db)
+
+            return {
+                "success": True,
+                "created": service_db
+            }
+
+
+    except ResponseValidationError as fastapi_exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
-                "status": "Internal Server Error",
-                "message": str(object=fastapi_err)
+                "status": "422 - Unprocessable Content",
+                "message": f"{fastapi_exc}"
             }
         )
 
