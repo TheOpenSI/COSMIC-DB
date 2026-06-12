@@ -82,7 +82,7 @@ class ServiceBase(SQLModel):
             name=None
         ) # pyright: ignore
     )
-    rag_capability: bool = Field(
+    memory_capability: bool = Field(
         default=False,
         nullable=False,
         sa_type=Boolean(

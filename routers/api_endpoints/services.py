@@ -118,7 +118,7 @@ async def read_services_v1(
         ServiceFilterParams,
         Query(
             title="Services Filter",
-            description="filter by active/deactive RAG enabled/disabled services.",
+            description="filter by active/deactive memory enabled/disabled services.",
             strict=True
         )
     ]
@@ -129,8 +129,8 @@ async def read_services_v1(
     if filter_query.active is not None:
         service_stmt = service_stmt.where(Services.status == filter_query.active)
 
-    if filter_query.rag_enable is not None:
-        service_stmt = service_stmt.where(Services.rag_capability == filter_query.rag_enable)
+    if filter_query.memory_enable is not None:
+        service_stmt = service_stmt.where(Services.memory_capability == filter_query.memory_enable)
 
     # Final result will differ depends on which SELECT query being executed if
     # filter applied or not

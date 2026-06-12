@@ -30,10 +30,10 @@ class ServiceCreate(ServiceBase):
 class ServiceUpdate(ServiceBase):
     model_config = ConfigDict(extra="forbid")   # pyright: ignore
 
-    name:           str | None  = None          # pyright: ignore
-    desc:           str | None  = None
-    status:         bool | None = True          # pyright: ignore
-    rag_capability: bool | None = False         # pyright: ignore
+    name:               str | None  = None      # pyright: ignore
+    desc:               str | None  = None
+    status:             bool | None = True      # pyright: ignore
+    memory_capability:  bool | None = False     # pyright: ignore
 
 
 class ServiceDelete(ServiceBase):
