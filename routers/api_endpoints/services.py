@@ -245,16 +245,24 @@ async def update_service_v1(
 
     else:
         service_data: dict[str, Any] = service.model_dump(
-            mode="json",
+            mode="python",
             exclude_unset=True
         )
 
-        # Only perform UPDATE queries if incoming data differ from stored data
-        for (service_column, service_data) in service_data.items():
-            if service_data != getattr(service_db, service_column):
-                service_db.sqlmodel_update(obj=service_data)
-                session.add(instance=service_db)
+        # NOTE:
+        # This's a wrapped method provided by SQLModel module so we can simply
+        # "update" stored service data with new one without having to think of
+        # the logic behind it. I couldn't find an actual reference to this
+        # method from the module itself (not surprised much since its part of
+        # FastAPI) so that I can understand the usecase of it better. However,
+        # these 2 sources below are my best attempt to justify the usage here:
+        # 1. https://sqlmodel.tiangolo.com/tutorial/fastapi/update/#update-the-hero-in-the-database
+        # 2. https://deepwiki.com/fastapi/sqlmodel/3-database-operations#partial-updates-with-multiple-models
 
+        # Only perform UPDATE queries if incoming data differ from stored data
+        service_db.sqlmodel_update(obj=service_data)
+
+        session.add(instance=service_db)
         session.commit()
         session.refresh(instance=service_db)
 
