@@ -37,15 +37,6 @@ class Services(ServiceBase, table=True):
         ),
     )
 
-    status: bool = Field(
-        default=False,
-        nullable=False,
-        sa_type=Boolean(
-            create_constraint=False,
-            name=None
-        ) # pyright: ignore
-    )
-
     """
     SQLModel (SQLAlchemy under the hood) doesn't have a clear way to create a
     table with PostgreSQL's SERIAL column data type. No problems, it's just

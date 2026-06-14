@@ -6,13 +6,21 @@ from fastapi import (
     Query,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    or_,
+    select
+)
 
 
 ### Type hints ###
-from typing_extensions import Any, Sequence
+from sqlmodel.sql.expression import SelectOfScalar
+from typing_extensions import (
+    Any,
+    Sequence
+)
 from ...types.tags import APITag
 from pydantic.types import PositiveInt
+from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
@@ -43,6 +51,62 @@ services_v1_router: APIRouter = APIRouter(
 )
 
 
+service_additional_responses: dict[int | str, dict[str, Any]] = {
+    403: {
+        "description": "Active Service Deletion Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "403 - Forbidden",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
+    404: {
+        "description": "Non Exist Data Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "404 - Not Found",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
+    409: {
+        "description": "Integrity Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "409 - Conflict",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
+    422: {
+        "description": "Validation Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "422 - Unprocessable Content",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 @services_v1_router.get(
     path="/",
     status_code=status.HTTP_200_OK,
@@ -54,90 +118,83 @@ async def read_services_v1(
         ServiceFilterParams,
         Query(
             title="Services Filter",
-            description="filter by active/deactive services.",
+            description="filter by active/deactive memory enabled/disabled services.",
             strict=True
         )
     ]
 ) -> Any:
-    if filter_query.active is None:
-        services_view: Sequence[Services] = session.exec(statement=select(Services)).all()
-        total_services: int = len(services_view)
+    # Dynamic build SELECT queries with WHERE clause for filtering
+    service_stmt: SelectOfScalar[Services] = select(Services)
 
-        if (total_services == 0):
-            return {
-                "success": True,
-                "count": total_services, # 0
-                "result": services_view
-            }
-        else:
-            return {
-                "success": True,
-                "count": total_services, # all fetchable service data
-                "result": services_view
-            }
+    if filter_query.active is not None:
+        service_stmt = service_stmt.where(Services.status == filter_query.active)
 
-    elif filter_query.active:
-        active_services_view: Sequence[Services] = session.exec(statement=select(Services).where(Services.status == True)).all()
-        total_services: int = len(active_services_view)
+    if filter_query.memory_enable is not None:
+        service_stmt = service_stmt.where(Services.memory_capability == filter_query.memory_enable)
 
-        if (total_services == 0):
-            return {
-                "success": True,
-                "count": total_services, # 0
-                "result": active_services_view
-            }
-        else:
-            return {
-                "success": True,
-                "count": total_services, # all fetchable active service data
-                "result": active_services_view
-            }
+    # Final result will differ depends on which SELECT query being executed if
+    # filter applied or not
+    services_view: Sequence[Services] = session.exec(statement=service_stmt).all()
 
-    else:
-        deactive_services_view: Sequence[Services] = session.exec(statement=select(Services).where(Services.status == False)).all()
-        total_services: int = len(deactive_services_view)
-
-        if (total_services == 0):
-            return {
-                "success": True,
-                "count": total_services, # 0
-                "result": deactive_services_view
-            }
-        else:
-            return {
-                "success": True,
-                "count": total_services, # all fetchable deactive service data
-                "result": deactive_services_view
-            }
+    return {
+        "success": True,
+        "count": len(services_view),
+        "result": services_view
+    }
 
 
 @services_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ServiceCreateResponse
+    response_model=ServiceCreateResponse,
+    responses=service_additional_responses
 )
 async def create_service_v1(
     service: ServiceCreate,
     session: SessionDependency
 ) -> Any:
     try:
-        service_db: Services = Services.model_validate(obj=service, strict=True)
+        # Only perform INSERT queries if incoming data not exist in the db
+        service_stored_data: Services | None = session.exec(
+            statement=select(Services).where(
+                or_(
+                    Services.name == service.name,
+                    Services.desc == service.desc
+                )
+            )
+        ).first()
 
-        session.add(instance=service_db)
-        session.commit()
-        session.refresh(instance=service_db)
+        if service_stored_data:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": "A service with similar 'name' or 'desc' column data already exists"
+                    }
+                )
 
-        return {
-            "success": True,
-            "created": service_db
-        }
+        else:
+            service_db: Services = Services.model_validate(
+                obj=service,
+                strict=True
+            )
 
-    except Exception as fastapi_err:
+            session.add(instance=service_db)
+            session.commit()
+            session.refresh(instance=service_db)
+
+            return {
+                "success": True,
+                "created": service_db
+            }
+
+
+    except ResponseValidationError as fastapi_exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
-                "status": "Internal Server Error",
-                "message": str(object=fastapi_err)
+                "status": "422 - Unprocessable Content",
+                "message": f"{fastapi_exc}"
             }
         )
 
@@ -145,7 +202,8 @@ async def create_service_v1(
 @services_v1_router.get(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ServicePublicResponse
+    response_model=ServicePublicResponse,
+    responses=service_additional_responses
 )
 async def read_service_v1(
     service_id: PositiveInt,
@@ -158,6 +216,7 @@ async def read_service_v1(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service Not Found!"
         )
+
     else:
         return {
             "success": True,
@@ -168,7 +227,8 @@ async def read_service_v1(
 @services_v1_router.patch(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ServiceUpdateResponse
+    response_model=ServiceUpdateResponse,
+    responses=service_additional_responses
 )
 async def update_service_v1(
     service_id: PositiveInt,
@@ -182,8 +242,24 @@ async def update_service_v1(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service Not Found!"
         )
+
     else:
-        service_data: dict[str, Any] = service.model_dump(exclude_unset=True)
+        service_data: dict[str, Any] = service.model_dump(
+            mode="python",
+            exclude_unset=True
+        )
+
+        # NOTE:
+        # This's a wrapped method provided by SQLModel module so we can simply
+        # "update" stored service data with new one without having to think of
+        # the logic behind it. I couldn't find an actual reference to this
+        # method from the module itself (not surprised much since its part of
+        # FastAPI) so that I can understand the usecase of it better. However,
+        # these 2 sources below are my best attempt to justify the usage here:
+        # 1. https://sqlmodel.tiangolo.com/tutorial/fastapi/update/#update-the-hero-in-the-database
+        # 2. https://deepwiki.com/fastapi/sqlmodel/3-database-operations#partial-updates-with-multiple-models
+
+        # Only perform UPDATE queries if incoming data differ from stored data
         service_db.sqlmodel_update(obj=service_data)
 
         session.add(instance=service_db)
@@ -199,24 +275,39 @@ async def update_service_v1(
 @services_v1_router.delete(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ServiceDeleteResponse
+    response_model=ServiceDeleteResponse,
+    responses=service_additional_responses
 )
 async def delete_service_v1(
     service_id: PositiveInt,
     session: SessionDependency
 ) -> Any:
-    service_gone: Services | None = session.get(entity=Services, ident=service_id)
+    service_gone: Services | None = session.get(
+        entity=Services,
+        ident=service_id
+    )
 
     if service_gone is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Service Not Found!"
         )
-    else:
-        session.delete(instance=service_gone)
-        session.commit()
 
-        return {
-            "success": True,
-            "deleted": service_gone
-        }
+    else:
+        if service_gone.status != False:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "status": "403 - Forbidden",
+                    "message": "Please disable the service first before peforming this action!!"
+                }
+            )
+
+        else:
+            session.delete(instance=service_gone)
+            session.commit()
+
+            return {
+                "success": True,
+                "deleted": service_gone
+            }

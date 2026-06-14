@@ -43,7 +43,8 @@ def upgrade() -> None:
         sa.Column('id', sa.SMALLINT(), nullable=False),
         sa.Column('name', sa.VARCHAR(length=100, collation=None), autoincrement=False, nullable=False),
         sa.Column('desc', sa.TEXT(length=None, collation=None), autoincrement=False, nullable=True),
-        sa.Column('status', sa.BOOLEAN(create_constraint=False, name=None), autoincrement=False, nullable=False, default=False),
+        sa.Column('status', sa.BOOLEAN(create_constraint=False, name=None), autoincrement=False, nullable=False, default=True),
+        sa.Column('memory_capability', sa.BOOLEAN(create_constraint=False, name=None), autoincrement=False, nullable=False, default=False),
         sa.Column('create_on', sa.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_SERVICE_ID')),
         if_not_exists=True
@@ -51,49 +52,43 @@ def upgrade() -> None:
 
     # Define data to pre-populate to 'Services' table
     services_data: list[dict[str, int | str | datetime]] = [
+        # NOTE:
+        # No need to specify 'id' column here as PostgreSQL will perform an auto
+        # increment for us with SMALLSERIAL data type (which is SMALLINT + AUTO
+        # INCREMENT under the hood)
         {
-            # No need to specify 'id' column here as PostgreSQL will perform an
-            # auto increment for us with SMALLSERIAL data type (which is
-            # SMALLINT + AUTO INCREMENT under the hood)
             'name': 'chess',
             'desc': 'If it is a chess game, predict the next chess move by providing a sequence of moves or a FEN.',
             'status': True,
+            'memory_capability': False,
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
-            # No need to specify 'id' column here as PostgreSQL will perform an
-            # auto increment for us with SMALLSERIAL data type (which is
-            # SMALLINT + AUTO INCREMENT under the hood)
             'name': 'memory',
             'desc': 'Update the vector database with a declarative sentence (not a question), or a PDF document.',
             'status': True,
+            'memory_capability': False,
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
-            # No need to specify 'id' column here as PostgreSQL will perform an
-            # auto increment for us with SMALLSERIAL data type (which is
-            # SMALLINT + AUTO INCREMENT under the hood)
             'name': 'code_generation',
             'desc': 'Generate or improve a code or answer a question in order to generate or improve a code.',
             'status': True,
+            'memory_capability': False,
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
-            # No need to specify 'id' column here as PostgreSQL will perform an
-            # auto increment for us with SMALLSERIAL data type (which is
-            # SMALLINT + AUTO INCREMENT under the hood)
             'name': 'general_question_answering',
             'desc': 'Answer a question or provide a reasoning, which cannot be achieved by the other services.',
             'status': True,
+            'memory_capability': False,
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
-            # No need to specify 'id' column here as PostgreSQL will perform an
-            # auto increment for us with SMALLSERIAL data type (which is
-            # SMALLINT + AUTO INCREMENT under the hood)
             'name': 'academic_governance',
             'desc': 'Answer question about Academic Governance.',
             'status': True,
+            'memory_capability': True,
             'create_on': datetime.now(tz=timezone.utc)
         }
     ]
