@@ -21,7 +21,10 @@ from datetime import (
     datetime,
     timezone
 )
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    ConfigDict
+)
 from cores.db import cosmic_db_configs
 
 
@@ -34,47 +37,43 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 
-#=============================================================================#
-# Validate JSON column with Pydantic, copied from the `types/api_responses`   #
-# directory due to how Alembic works                                          #
-#=============================================================================#
+#==============================================================================#
+# This's copied from `types/json_schemas.py` file because each migration script#
+# will be executed independently before FastAPI started up, hence it cannot    #
+# "see" these defined Pydantic's Base Model so that we can directly import it. #
+#==============================================================================#
 class GeneralConfigs(BaseModel):
     """docstring for GeneralConfigs."""
+    model_config = ConfigDict(extra="forbid")
+
     provider:               str         = "ollama"
     model:                  str         = "qwen2.5:7b"
     is_quantised:           bool        = False
     seed:                   int         = 0
-    # TODO:
-    # These 2 need to be defined and stored from an external mounted volume data
-    # That's related to CoSMIC container. After a PR for this create and merged,
-    # change this to `NOTE` and adjust the comment explanation.
     default_knowledge_path: str         = "/app/data/default/"
     temp_knowledge_path:    str         = "/app/data/temp/"
-    # NOTE:
-    # Read specified key's value from `cosmic_config.env` file (for now until I
-    # think of a better, more secure solution).
-    api_key:    str | None  = cosmic_db_configs.get("OPENAI_API_KEY", None)
+    api_key:                str | None  = cosmic_db_configs.get("OPENAI_API_KEY", None)
 
 
 class QueryAnalyserConfigs(GeneralConfigs):
     """docstring for QueryAnalyserConfigs."""
-    # NOTE:
-    # On 'Configs' page, there'll be an option to apply similar configs as the
-    # general unless wanting to customise manually by the admin user.
-    model:          str     = "llama3.3:70b"
-    is_quantised:   bool    = True
+    model_config = ConfigDict(extra="forbid")
+
+    pass
 
 
 class ConfigurationSchema(BaseModel):
     """docstring for ConfigurationSchema."""
+    model_config = ConfigDict(extra="forbid")
+
     general:        GeneralConfigs
     query_analyser: QueryAnalyserConfigs
 
 
 
-#=============================================================================#
-#                   Actual migration script starts from here                  #
-#=============================================================================#
+#==============================================================================#
+#                   Migration script logic starts from here                    #
+#==============================================================================#
 def upgrade() -> None:
     """Upgrade schema."""
     # Define pre-population tables
