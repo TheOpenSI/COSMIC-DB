@@ -4,7 +4,10 @@ from fastapi import (
     HTTPException,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    or_,
+    select
+)
 from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.expression import update
 
@@ -124,50 +127,71 @@ async def create_config_v1(
     session: SessionDependency
 ) -> Any:
     try:
+        # Only perform INSERT query if payload actually contains new data
+        config_stored_data: Configurations | None = session.exec(
+            statement=select(Configurations).where(
+                or_(
+                    Configurations.name == config.name,
+                    # NOTE:
+                    # Pydantic Docs have a very clear example which explain why
+                    # I use this approach here:
+                    # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
+                    Configurations.details == config.details.model_dump(mode='json')
+                )
+            )
+        ).first()
+
+        if config_stored_data:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": "A configuration with similar 'name' or 'details' column data already exists"
+                    }
+                )
+
+        else:
+            config_db: Configurations = Configurations.model_validate(
+                obj=config,
+                strict=True
+            )
+
+            # NOTE:
+            # Very much similar reason as above
+            config_db.details = config_db.details.model_dump(mode='json') # pyright: ignore
+
+            session.add(instance=config_db)
+            session.commit()
+            session.refresh(instance=config_db)
+
+            return {
+                "success": True,
+                "created": config_db
+            }
+
+
+    except ResponseValidationError as fastapi_exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "status": "422 - Unprocessable Content",
+                "message": f"{fastapi_exc}"
+            }
+        )
+
+
+    except TypeError as python_exc:
         # NOTE:
-        # `model_validate()` will keep non-standard Python types (e.g., custom
-        # classes, library types, etc). Therefore, we've to dump those into valid
-        # Python stdlib types so that it can be inserted/updated to the targeted
-        # db table. SQLModel (or any ORMs, really) only handle incoming data that
-        # have types match the convention for DB-specific system (with exception
-        # on some custom types that are a part of the built-in Python modules).
-        config_validate_data:   Configurations  = Configurations.model_validate(obj=config, strict=True)
-        config_compatible_data: dict[str, Any]  = config_validate_data.model_dump(mode="json", exclude_unset=True)
-        config_db:              Configurations  = Configurations(**config_compatible_data)
-
-        session.add(instance=config_db)
-        session.commit()
-        session.refresh(instance=config_db)
-
-        return {
-            "success": True,
-            "created": config_db
-        }
-
-    except IntegrityError as psycopg_err:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "status": "409 - Conflict",
-                "message": f"{psycopg_err}"
-            }
-        )
-
-    except TypeError as python_err:
+        # This one isn't likely to be catch that easy anymore since the only case
+        # that would cause this's by performing ORM queries with non-standard
+        # Python types (e.g., our custom `ConfigurationSchema` type). If anyone
+        # would still want to test this (probably through an actual unit test
+        # file), feels free to uncomment [Line 161] to see the effect.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
-                "status": "500 - Type Error",
-                "message": f"{python_err}"
-            }
-        )
-
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
+                "status": "500 - Internal Server Error",
+                "message": f"{python_exc}"
             }
         )
 
