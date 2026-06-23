@@ -4,13 +4,17 @@ from fastapi import (
     HTTPException,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    or_,
+    select
+)
 
 
 ### Type hints ###
 from uuid import UUID
 from typing_extensions import Any, Sequence
 from ...types.tags import APITag
+from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
@@ -72,23 +76,47 @@ async def create_role_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        role_db: Roles = Roles.model_validate(obj=role, strict=True)
+        # Only perform INSERT query if payload actually contains new data
+        role_stored_data: Roles | None = session.exec(
+            statement=select(Roles).where(
+                or_(
+                    Roles.name == role.name,
+                    Roles.desc == role.desc
+                )
+            )
+        ).first()
 
-        session.add(instance=role_db)
-        session.commit()
-        session.refresh(instance=role_db)
+        if role_stored_data:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": "A role with similar 'name' or 'desc' column data already exists"
+                    }
+                )
 
-        return {
-            "success": True,
-            "created": role_db
-        }
+        else:
+            role_db: Roles = Roles.model_validate(
+                obj=role,
+                strict=True
+            )
 
-    except Exception as fastapi_err:
+            session.add(instance=role_db)
+            session.commit()
+            session.refresh(instance=role_db)
+
+            return {
+                "success": True,
+                "created": role_db
+            }
+
+
+    except ResponseValidationError as fastapi_exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
-                "status": "Internal Server Error",
-                "message": str(object=fastapi_err)
+                "status": "422 - Unprocessable Content",
+                "message": f"{fastapi_exc}"
             }
         )
 
