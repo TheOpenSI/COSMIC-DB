@@ -11,6 +11,10 @@ from pydantic.types import AwareDatetime
 
 ### Internal modules ###
 from ..cores.db import cosmic_db_configs
+from ..cores.globals import (
+    USER_ROLE,
+    LLM_ROLE,
+)
 
 
 
@@ -70,9 +74,9 @@ class ChatHistorySchema(BaseModel):
     # NOTE:
     # If edit/share convo pairs feature added, then we can use 'convo_pair_id'
     # UUID value.
-    user_role:          str
+    user_role:          str = USER_ROLE # NOTE: per agreed solution from our team
     user_query:         str
     query_create_on:    AwareDatetime
-    llm_role:           str
+    llm_role:           str = LLM_ROLE  # NOTE: per agreed solution from our team
     llm_response:       str
     response_create_on: AwareDatetime

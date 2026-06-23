@@ -26,7 +26,10 @@ from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import ResponseValidationError
 from sqlalchemy.sql.expression import Update
-from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
+from sqlalchemy.sql.elements import (
+    BinaryExpression,
+    ColumnElement
+)
 
 
 ### Internal modules ###
@@ -136,65 +139,60 @@ async def create_chatbox_v1(
 ) -> Any:
     try:
         # NOTE:
-        # `model_validate()` will keep non-standard Python types (e.g., custom
-        # classes, library types, etc). Therefore, we've to dump those into valid
-        # Python stdlib types so that it can be inserted/updated to the targeted
-        # db table. SQLModel (or any ORMs, really) only handle incoming data that
-        # have types match the convention for DB-specific system (with exception
-        # on some custom types that are a part of the built-in Python modules).
-        chatbox_validate_data:      Chatboxes       = Chatboxes.model_validate(obj=chatbox, strict=True)
-        chatbox_compatible_data:    dict[str, Any]  = chatbox_validate_data.model_dump(mode="json", exclude_unset=True)
+        # Anyone might wonder why didn't we do any sort of creation validation
+        # logic here? Since this particular endpoint here is being used to create
+        # new chat session with (or without) a chat history, it's actually valid
+        # usecase to have duplicate chat session data in the db. Why would it be?
+        # Because, well, users are **REDACTED** :)
+        chatbox_db: Chatboxes = Chatboxes.model_validate(
+            obj=chatbox,
+            strict=True
+        )
 
-        # Make sure valid roles provided in chat history
-        role_name_validate: bool = await valid_role_name(chat_history_data=chatbox_compatible_data["details"])
+        # NOTE:
+        # Pydantic Docs have a very clear example which explain why
+        # I use this approach here. Our case is slightly different
+        # since we had a complex custom list class type, hence we
+        # need to break it out first so it becomes a normal Python
+        # list. Reference link below:
+        # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
+        chatbox_db.details = [ # pyright: ignore
+            chat_history.model_dump(mode='json')
+            for chat_history in chatbox.details
+        ]
 
-        if not role_name_validate:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "status": "400 - Bad Request",
-                    "message": "Invalid chat history format for create!"
-                }
-            )
+        session.add(instance=chatbox_db)
+        session.commit()
+        session.refresh(instance=chatbox_db)
 
-        else:
-            chatbox_db: Chatboxes = Chatboxes(**chatbox_compatible_data)
+        return {
+            "success": True,
+            "created": chatbox_db
+        }
 
-            session.add(instance=chatbox_db)
-            session.commit()
-            session.refresh(instance=chatbox_db)
 
-            return {
-                "success": True,
-                "created": chatbox_db
-            }
-
-    except IntegrityError as psycopg_err:
+    except IntegrityError as sqlalchemy_exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"{psycopg_err}"
+                "message": f"{sqlalchemy_exc}"
             }
         )
 
 
-    except TypeError as python_err:
+    except TypeError as python_exc:
+        # NOTE:
+        # This one isn't likely to be catch that easy anymore since the only case
+        # that would cause this's by performing ORM queries with non-standard
+        # Python types (e.g., our custom `ChatHistorySchema` type). If anyone
+        # would still want to test this (probably through an actual unit test
+        # file), feels free to uncomment [Line 159] to see the effect.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
-                "status": "500 - Type Error",
-                "message": f"{python_err}"
-            }
-        )
-
-
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
+                "status": "500 - Internal Server Error",
+                "message": f"{python_exc}"
             }
         )
 
