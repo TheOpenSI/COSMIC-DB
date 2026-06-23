@@ -51,14 +51,6 @@ class Roles(RoleBase, table=True):
         ),
     )
 
-    name: str = Field(
-        max_length=255,
-        nullable=False,
-        sa_type=VARCHAR(
-            length=255,
-            collation=None
-        ) # pyright: ignore
-    )
     id: UUID = Field(
         default_factory=(lambda: uuid7()),
         nullable=False,
