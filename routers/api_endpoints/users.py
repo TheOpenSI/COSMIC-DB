@@ -4,13 +4,18 @@ from fastapi import (
     HTTPException,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    or_,
+    select
+)
 
 
 ### Type hints ###
 from uuid import UUID
 from typing_extensions import Any, Sequence
 from ...types.tags import APITag
+from fastapi.exceptions import ResponseValidationError
+from sqlalchemy.exc import IntegrityError
 
 
 ### Internal modules ###
@@ -72,23 +77,57 @@ async def create_user_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        user_db: Users = Users.model_validate(obj=user, strict=True)
+        # Only perform INSERT query if payload actually contains new data
+        user_stored_data: Users | None = session.exec(
+            statement=select(Users).where(
+                or_(
+                    Users.name == user.name,
+                    Users.email == user.email
+                )
+            )
+        ).first()
 
-        session.add(instance=user_db)
-        session.commit()
-        session.refresh(instance=user_db)
+        if user_stored_data:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": "A user with similar 'name' or 'email' column data already exists"
+                    }
+                )
 
-        return {
-            "success": True,
-            "created": user_db
-        }
+        else:
+            user_db: Users = Users.model_validate(
+                obj=user,
+                strict=True
+            )
 
-    except Exception as fastapi_err:
+            session.add(instance=user_db)
+            session.commit()
+            session.refresh(instance=user_db)
+
+            return {
+                "success": True,
+                "created": user_db
+            }
+
+
+    except ResponseValidationError as fastapi_exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
+                "status": "422 - Unprocessable Content",
+                "message": f"{fastapi_exc}"
+            }
+        )
+
+
+    except IntegrityError as sqlalchemy_exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": f"{sqlalchemy_exc}"
             }
         )
 
