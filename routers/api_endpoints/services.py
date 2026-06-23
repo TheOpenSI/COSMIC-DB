@@ -154,7 +154,7 @@ async def create_service_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        # Only perform INSERT queries if incoming data not exist in the db
+        # Only perform INSERT query if payload actually contains new data
         service_stored_data: Services | None = session.exec(
             statement=select(Services).where(
                 or_(
