@@ -10,8 +10,14 @@ from sqlalchemy.schema import (
 
 
 ### Type hints ###
-from datetime import datetime, timezone
-from uuid import UUID, uuid7
+from datetime import (
+    datetime,
+    timezone
+)
+from uuid import (
+    UUID,
+    uuid7
+)
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
     Uuid
