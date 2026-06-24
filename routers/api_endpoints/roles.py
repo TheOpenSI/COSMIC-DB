@@ -12,7 +12,10 @@ from sqlmodel import (
 
 ### Type hints ###
 from uuid import UUID
-from typing_extensions import Any, Sequence
+from typing_extensions import (
+    Any,
+    Sequence
+)
 from ...types.tags import APITag
 from fastapi.exceptions import ResponseValidationError
 
