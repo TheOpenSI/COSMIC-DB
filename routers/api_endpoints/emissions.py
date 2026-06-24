@@ -17,12 +17,10 @@ from typing_extensions import (
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
-from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
-from ...apis.table_models.users import Users
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
     # For validation (Data Model)
