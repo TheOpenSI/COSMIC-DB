@@ -16,7 +16,10 @@ from typing import Any
 
 
 ### Internal modules ###
-from ..cores.globals import LLM_ROLE
+from ..cores.globals import (
+    USER_ROLE,
+    LLM_ROLE
+)
 
 
 
@@ -214,7 +217,8 @@ async def valid_role_name(
             user_chat_history_role: str = chat_history["user_role"]
             llm_chat_history_role:  str = chat_history["llm_role"]
 
-            if user_chat_history_role not in (admin_role_name, normal_role_name):
+            if (user_chat_history_role not in (admin_role_name, normal_role_name)) \
+            or (user_chat_history_role != USER_ROLE):
                 # Invalid user role in chat history
                 print(
                     "{head_sep:s}\n{body_msg:s}\n{foot_sep:s}".format(
@@ -275,7 +279,8 @@ async def valid_role_name(
             user_chat_history_role: str = chat_history["user_role"]
             llm_chat_history_role:  str = chat_history["llm_role"]
 
-            if user_chat_history_role not in (admin_role_name, normal_role_name):
+            if (user_chat_history_role not in (admin_role_name, normal_role_name)) \
+            or (user_chat_history_role != USER_ROLE):
                 # Invalid user role in chat history
                 return False
 
