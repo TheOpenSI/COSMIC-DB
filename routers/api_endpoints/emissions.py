@@ -32,7 +32,9 @@ from ...types.api_responses.emissions import (
     EmissionCreateResponse,
     EmissionDeleteResponse
 )
-from ...types.filter_params_emissions import EmissionsFilterParams
+from ...types.filter_params import (
+    EmissionFilterParams
+)
 
 
 emissions_v1_router: APIRouter = APIRouter(
@@ -50,10 +52,10 @@ emissions_v1_router: APIRouter = APIRouter(
 async def read_emissions_v1(
     session: SessionDependency,
     filter_query: Annotated[
-        EmissionsFilterParams,
+        EmissionFilterParams,
         Query(
             title="Emissions Filter",
-            description="Filter emissions by user_id or emission_id.",
+            description="Filter emissions data by `user_id` or `emission_id`.",
             strict=True
         )
     ]
