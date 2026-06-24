@@ -1,4 +1,4 @@
-"""pre_populate_services_data
+"""pre-populate services data for Services table
 
 Revision ID: 8e266617f204
 Revises: 96121362751e
