@@ -87,18 +87,18 @@ async def create_emission_v1(
     session: SessionDependency
 ) -> Any:
     try:
+        # NOTE:
+        # Anyone might wonder why didn't we do any sort of creation validation
+        # logic here? Since this particular endpoint here is being used to create
+        # new Carbon emission data per user query, it's actually valid usecase to
+        # have duplicate data in the db. Why would it be? Because, well, SLMs can
+        # use the same amount of energy and effort to give users responses that
+        # would sound reasonable to their queries (whether it's exactly the same
+        # or not). Besides, users are **REDACTED** anyways :)
         emission_db: Emissions = Emissions.model_validate(
             obj=emission,
             strict=True
         )
-
-        # to validate if the provided user_id exists in the db
-        user = session.get(entity=Users, ident=emission_db.user_id)
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid user_id: User does not exist!"
-            )
 
         session.add(instance=emission_db)
         session.commit()
@@ -110,32 +110,12 @@ async def create_emission_v1(
         }
 
 
-    except IntegrityError as psycopg_err:
+    except IntegrityError as sqlalchemy_exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"{psycopg_err}"
-            }
-        )
-
-
-    except TypeError as python_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Type Error",
-                "message": f"{python_err}"
-            }
-        )
-
-
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
+                "message": f"{sqlalchemy_exc}"
             }
         )
 
