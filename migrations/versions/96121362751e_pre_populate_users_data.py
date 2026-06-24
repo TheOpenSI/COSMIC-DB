@@ -1,4 +1,4 @@
-"""pre_populate_users_data
+"""pre-populate users data for Users table
 
 Revision ID: 96121362751e
 Revises: 8a419f2d7d9d
@@ -8,8 +8,6 @@ Create Date: 2026-04-07 18:40:42.124555
 from datetime import datetime, timezone
 from typing import Sequence, Union
 from uuid import UUID, uuid7
-from sqlalchemy.orm.session import Session
-
 from alembic import op
 import sqlalchemy as sa
 

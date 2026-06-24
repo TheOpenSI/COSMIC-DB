@@ -11,14 +11,23 @@ from sqlalchemy.schema import (
 
 
 ### Type hints ###
-from datetime import datetime, timezone
-from uuid import UUID, uuid7
+from datetime import (
+    datetime,
+    timezone
+)
+from uuid import (
+    UUID,
+    uuid7
+)
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
     VARCHAR,
     Uuid
 )
-from typing import TYPE_CHECKING, Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional
+)
 
 
 ### Internal modules ###
@@ -96,8 +105,3 @@ class Users(UserBase, table=True):
         cascade_delete=True,
         passive_deletes=True
     )
-    # statistics: Optional["Statistics"] = Relationship(
-    #     back_populates="users",
-    #     cascade_delete=True,
-    #     passive_deletes=True
-    # )
