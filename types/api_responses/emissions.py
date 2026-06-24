@@ -7,8 +7,8 @@ from pydantic import BaseModel
 
 ### Internal modules ###
 from ...apis.data_models.emissions import (
-    EmissionsPublic,
-    EmissionsDelete
+    EmissionPublic,
+    EmissionDelete
 )
 
 
@@ -19,14 +19,14 @@ Client responses format according to FE requirements.
 class EmissionsPublicResponse(BaseModel):
     success:    bool
     count:      int
-    result:     list[EmissionsPublic]
+    result:     list[EmissionPublic]
 
 
-class EmissionsCreateResponse(BaseModel):
+class EmissionCreateResponse(BaseModel):
     success:    bool
-    created:    EmissionsPublic
+    created:    EmissionPublic
 
 
-class EmissionsDeleteResponse(BaseModel):
+class EmissionDeleteResponse(BaseModel):
     success:    bool
-    deleted:    EmissionsDelete
+    deleted:    EmissionDelete

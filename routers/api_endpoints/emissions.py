@@ -26,13 +26,13 @@ from ...apis.table_models.users import Users
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
     # For validation (Data Model)
-    EmissionsCreate
+    EmissionCreate
 )
 from ...types.api_responses.emissions import (
     # For client responses (Responses Model)
     EmissionsPublicResponse,
-    EmissionsCreateResponse,
-    EmissionsDeleteResponse
+    EmissionCreateResponse,
+    EmissionDeleteResponse
 )
 from ...types.filter_params_emissions import EmissionsFilterParams
 
@@ -80,10 +80,10 @@ async def read_emissions_v1(
 @emissions_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=EmissionsCreateResponse
+    response_model=EmissionCreateResponse
 )
 async def create_emission_v1(
-    emission: EmissionsCreate,
+    emission: EmissionCreate,
     session: SessionDependency
 ) -> Any:
     try:
@@ -123,7 +123,7 @@ async def create_emission_v1(
 @emissions_v1_router.delete(
     path="/{emission_id}",
     status_code=status.HTTP_200_OK,
-    response_model=EmissionsDeleteResponse
+    response_model=EmissionDeleteResponse
 )
 async def delete_emission_v1(
     emission_id: UUID7,
