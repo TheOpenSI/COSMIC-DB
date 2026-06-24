@@ -10,14 +10,19 @@ from sqlalchemy.schema import (
 
 
 ### Type hints ###
-from datetime import datetime, timezone
+from datetime import (
+    datetime,
+    timezone
+)
 from uuid import UUID, uuid7
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
-    VARCHAR,
     Uuid
 )
-from typing import TYPE_CHECKING, Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional
+)
 
 
 ### Internal modules ###

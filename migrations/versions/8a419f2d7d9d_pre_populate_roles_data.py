@@ -1,4 +1,4 @@
-"""pre_populate_roles_data
+"""pre-populate roles data for Roles table
 
 Revision ID: 8a419f2d7d9d
 Revises: 
