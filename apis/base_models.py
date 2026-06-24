@@ -136,6 +136,13 @@ class ChatboxBase(SQLModel):
 
 
 class EmissionBase(SQLModel):
+    user_id: UUID = Field(
+        nullable=False,
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
+        ) # pyright: ignore
+    )
     run_id: UUID = Field(
         nullable=False,
         sa_type=Uuid(
@@ -291,11 +298,4 @@ class EmissionBase(SQLModel):
     wue: float | None = Field(
         default=None,
         nullable=True
-    )
-    user_id: UUID = Field(
-        nullable=False,
-        sa_type=Uuid(
-            as_uuid=True,
-            native_uuid=True
-        ) # pyright: ignore
     )
