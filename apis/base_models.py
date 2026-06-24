@@ -143,14 +143,14 @@ class ChatboxBase(SQLModel):
     )
 
 
-class EmissionsBase(SQLModel):
+class EmissionBase(SQLModel):
     run_id: UUID = Field(
         nullable=False,
         sa_type=Uuid(
             as_uuid=True,
             native_uuid=True
         ) # pyright: ignore
-    )   
+    )
     duration: float = Field(
         nullable=False
     )
