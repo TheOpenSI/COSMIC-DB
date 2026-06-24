@@ -186,7 +186,7 @@ class EmissionBase(SQLModel):
     region: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -195,7 +195,7 @@ class EmissionBase(SQLModel):
     cloud_provider: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -204,7 +204,7 @@ class EmissionBase(SQLModel):
     cloud_region: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -213,7 +213,7 @@ class EmissionBase(SQLModel):
     os: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -221,12 +221,12 @@ class EmissionBase(SQLModel):
     )
     cpu_count: int | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     cpu_model: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -234,12 +234,12 @@ class EmissionBase(SQLModel):
     )
     gpu_count: int | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     gpu_model: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -247,15 +247,15 @@ class EmissionBase(SQLModel):
     )
     longitude: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     latitude: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     ram_total_size: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     tracking_mode: str | None = Field(
         default=None,
@@ -268,24 +268,24 @@ class EmissionBase(SQLModel):
     )
     cpu_utilization_percent: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     gpu_utilization_percent: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     ram_utilization_percent: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     ram_used_gb: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     on_cloud: str | None = Field(
         default=None,
         max_length=1,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=1,
             collation=None
@@ -293,9 +293,9 @@ class EmissionBase(SQLModel):
     )
     pue: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     wue: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
