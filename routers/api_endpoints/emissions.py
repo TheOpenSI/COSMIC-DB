@@ -17,24 +17,24 @@ from typing_extensions import (
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
-from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
-from ...apis.table_models.users import Users
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
     # For validation (Data Model)
-    EmissionsCreate
+    EmissionCreate
 )
 from ...types.api_responses.emissions import (
     # For client responses (Responses Model)
     EmissionsPublicResponse,
-    EmissionsCreateResponse,
-    EmissionsDeleteResponse
+    EmissionCreateResponse,
+    EmissionDeleteResponse
 )
-from ...types.filter_params_emissions import EmissionsFilterParams
+from ...types.filter_params import (
+    EmissionFilterParams
+)
 
 
 emissions_v1_router: APIRouter = APIRouter(
@@ -52,10 +52,10 @@ emissions_v1_router: APIRouter = APIRouter(
 async def read_emissions_v1(
     session: SessionDependency,
     filter_query: Annotated[
-        EmissionsFilterParams,
+        EmissionFilterParams,
         Query(
             title="Emissions Filter",
-            description="Filter emissions by user_id or emission_id.",
+            description="Filter emissions data by `user_id` or `emission_id`.",
             strict=True
         )
     ]
@@ -80,25 +80,25 @@ async def read_emissions_v1(
 @emissions_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=EmissionsCreateResponse
+    response_model=EmissionCreateResponse
 )
 async def create_emission_v1(
-    emission: EmissionsCreate,
+    emission: EmissionCreate,
     session: SessionDependency
 ) -> Any:
     try:
+        # NOTE:
+        # Anyone might wonder why didn't we do any sort of creation validation
+        # logic here? Since this particular endpoint here is being used to create
+        # new Carbon emission data per user query, it's actually valid usecase to
+        # have duplicate data in the db. Why would it be? Because, well, SLMs can
+        # use the same amount of energy and effort to give users responses that
+        # would sound reasonable to their queries (whether it's exactly the same
+        # or not). Besides, users are **REDACTED** anyways :)
         emission_db: Emissions = Emissions.model_validate(
             obj=emission,
             strict=True
         )
-
-        # to validate if the provided user_id exists in the db
-        user = session.get(entity=Users, ident=emission_db.user_id)
-        if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid user_id: User does not exist!"
-            )
 
         session.add(instance=emission_db)
         session.commit()
@@ -110,32 +110,12 @@ async def create_emission_v1(
         }
 
 
-    except IntegrityError as psycopg_err:
+    except IntegrityError as sqlalchemy_exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"{psycopg_err}"
-            }
-        )
-
-
-    except TypeError as python_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Type Error",
-                "message": f"{python_err}"
-            }
-        )
-
-
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
+                "message": f"{sqlalchemy_exc}"
             }
         )
 
@@ -143,7 +123,7 @@ async def create_emission_v1(
 @emissions_v1_router.delete(
     path="/{emission_id}",
     status_code=status.HTTP_200_OK,
-    response_model=EmissionsDeleteResponse
+    response_model=EmissionDeleteResponse
 )
 async def delete_emission_v1(
     emission_id: UUID7,
