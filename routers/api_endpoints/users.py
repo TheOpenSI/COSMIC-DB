@@ -115,16 +115,6 @@ async def create_user_v1(
             }
 
 
-    except ResponseValidationError as fastapi_exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "status": "422 - Unprocessable Content",
-                "message": f"{fastapi_exc}"
-            }
-        )
-
-
     except IntegrityError as sqlalchemy_exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
