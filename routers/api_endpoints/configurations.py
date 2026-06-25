@@ -186,7 +186,7 @@ async def create_config_v1(
         # that would cause this's by performing ORM queries with non-standard
         # Python types (e.g., our custom `ConfigurationSchema` type). If anyone
         # would still want to test this (probably through an actual unit test
-        # file), feels free to uncomment [Line 161] to see the effect.
+        # file), feels free to comment out [Line 161] to see the effect.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
