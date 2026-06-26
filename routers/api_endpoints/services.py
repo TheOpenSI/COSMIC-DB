@@ -1,20 +1,17 @@
 ### Core modules ###
-from typing import Annotated
 from fastapi import (
     APIRouter,
     HTTPException,
     Query,
     status
 )
-from sqlmodel import (
-    or_,
-    select
-)
+from sqlmodel import select
 
 
 ### Type hints ###
 from sqlmodel.sql.expression import SelectOfScalar
-from typing_extensions import (
+from typing import (
+    Annotated,
     Any,
     Sequence
 )
@@ -152,26 +149,30 @@ async def create_service_v1(
     service: ServiceCreate,
     session: SessionDependency
 ) -> Any:
-    # Only perform INSERT query if payload actually contains new data
-    service_stored_data: Services | None = session.exec(
-        statement=select(Services).where(
-            or_(
-                Services.name == service.name,
-                Services.desc == service.desc
+        # Validation against 'name' field in payload
+        service_stored_name: tuple[int, str] | None = session.exec(
+            statement=select(
+                # NOTE: 'None' type is for fitting FastAPI practices , not that
+                # this column accept NULL type
+                cast(int, Services.id),
+                Services.name
             )
-        )
-    ).first()
-
-    if service_stored_data:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "status": "409 - Conflict",
-                "message": "A service with similar 'name' or 'desc' column data already exists"
-                }
+            .where(
+                Services.name == service.name
             )
+        ).first()
 
-    else:
+        if service_stored_name:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": f"'{service_stored_name[1]}' service has been created."
+                    }
+                )
+
+
+        # Only perform INSERT query if payload actually contains new data
         service_db: Services = Services.model_validate(
             obj=service,
             strict=True
