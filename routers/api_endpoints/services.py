@@ -20,7 +20,6 @@ from typing_extensions import (
 )
 from ...types.tags import APITag
 from pydantic.types import PositiveInt
-from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
@@ -153,50 +152,39 @@ async def create_service_v1(
     service: ServiceCreate,
     session: SessionDependency
 ) -> Any:
-    try:
-        # Only perform INSERT query if payload actually contains new data
-        service_stored_data: Services | None = session.exec(
-            statement=select(Services).where(
-                or_(
-                    Services.name == service.name,
-                    Services.desc == service.desc
-                )
+    # Only perform INSERT query if payload actually contains new data
+    service_stored_data: Services | None = session.exec(
+        statement=select(Services).where(
+            or_(
+                Services.name == service.name,
+                Services.desc == service.desc
             )
-        ).first()
-
-        if service_stored_data:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "status": "409 - Conflict",
-                    "message": "A service with similar 'name' or 'desc' column data already exists"
-                    }
-                )
-
-        else:
-            service_db: Services = Services.model_validate(
-                obj=service,
-                strict=True
-            )
-
-            session.add(instance=service_db)
-            session.commit()
-            session.refresh(instance=service_db)
-
-            return {
-                "success": True,
-                "created": service_db
-            }
-
-
-    except ResponseValidationError as fastapi_exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "status": "422 - Unprocessable Content",
-                "message": f"{fastapi_exc}"
-            }
         )
+    ).first()
+
+    if service_stored_data:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": "A service with similar 'name' or 'desc' column data already exists"
+                }
+            )
+
+    else:
+        service_db: Services = Services.model_validate(
+            obj=service,
+            strict=True
+        )
+
+        session.add(instance=service_db)
+        session.commit()
+        session.refresh(instance=service_db)
+
+        return {
+            "success": True,
+            "created": service_db
+        }
 
 
 @services_v1_router.get(
