@@ -4,14 +4,12 @@ from fastapi import (
     HTTPException,
     status
 )
-from sqlmodel import (
-    or_,
-    select
-)
+from sqlmodel import select
 
 
 ### Type hints ###
 from uuid import UUID
+from pydantic.types import UUID7
 from typing import (
     Any,
     Sequence
@@ -77,26 +75,28 @@ async def create_role_v1(
     role: RoleCreate,
     session: SessionDependency
 ) -> Any:
-    # Only perform INSERT query if payload actually contains new data
-    role_stored_data: Roles | None = session.exec(
-        statement=select(Roles).where(
-            or_(
-                Roles.name == role.name,
-                Roles.desc == role.desc
+        # Validation against 'name' field in payload
+        role_stored_name: tuple[UUID7, str] | None = session.exec(
+            statement=select(
+                Roles.id,
+                Roles.name
             )
-        )
-    ).first()
-
-    if role_stored_data:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "status": "409 - Conflict",
-                "message": "A role with similar 'name' or 'desc' column data already exists"
-                }
+            .where(
+                Roles.name == role.name
             )
+        ).first()
 
-    else:
+        if role_stored_name:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": f"'{role_stored_name[1]}' role has been created."
+                    }
+                )
+
+
+        # Only perform INSERT query if payload actually contains new data
         role_db: Roles = Roles.model_validate(
             obj=role,
             strict=True
