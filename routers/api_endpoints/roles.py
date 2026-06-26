@@ -12,12 +12,11 @@ from sqlmodel import (
 
 ### Type hints ###
 from uuid import UUID
-from typing_extensions import (
+from typing import (
     Any,
     Sequence
 )
 from ...types.tags import APITag
-from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
@@ -78,50 +77,39 @@ async def create_role_v1(
     role: RoleCreate,
     session: SessionDependency
 ) -> Any:
-    try:
-        # Only perform INSERT query if payload actually contains new data
-        role_stored_data: Roles | None = session.exec(
-            statement=select(Roles).where(
-                or_(
-                    Roles.name == role.name,
-                    Roles.desc == role.desc
-                )
+    # Only perform INSERT query if payload actually contains new data
+    role_stored_data: Roles | None = session.exec(
+        statement=select(Roles).where(
+            or_(
+                Roles.name == role.name,
+                Roles.desc == role.desc
             )
-        ).first()
-
-        if role_stored_data:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "status": "409 - Conflict",
-                    "message": "A role with similar 'name' or 'desc' column data already exists"
-                    }
-                )
-
-        else:
-            role_db: Roles = Roles.model_validate(
-                obj=role,
-                strict=True
-            )
-
-            session.add(instance=role_db)
-            session.commit()
-            session.refresh(instance=role_db)
-
-            return {
-                "success": True,
-                "created": role_db
-            }
-
-
-    except ResponseValidationError as fastapi_exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail={
-                "status": "422 - Unprocessable Content",
-                "message": f"{fastapi_exc}"
-            }
         )
+    ).first()
+
+    if role_stored_data:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": "A role with similar 'name' or 'desc' column data already exists"
+                }
+            )
+
+    else:
+        role_db: Roles = Roles.model_validate(
+            obj=role,
+            strict=True
+        )
+
+        session.add(instance=role_db)
+        session.commit()
+        session.refresh(instance=role_db)
+
+        return {
+            "success": True,
+            "created": role_db
+        }
 
 
 @roles_v1_router.get(
