@@ -127,47 +127,82 @@ async def create_config_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        # Only perform INSERT query if payload actually contains new data
-        config_stored_data: Configurations | None = session.exec(
-            statement=select(Configurations).where(
-                or_(
-                    Configurations.name == config.name,
-                    # NOTE:
-                    # Pydantic Docs have a very clear example which explain why
-                    # I use this approach here:
-                    # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
-                    Configurations.details == config.details.model_dump(mode='json')
-                )
+        # Validation against 'name' field in payload
+        config_stored_name: tuple[UUID7, str | None] | None = session.exec(
+            statement=select(
+                Configurations.id,
+                Configurations.name
+            )
+            .where(
+                Configurations.name == config.name
             )
         ).first()
 
-        if config_stored_data:
+        if config_stored_name:
+            if config_stored_name[1] is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": f"'{config_stored_name[1]}' config preset has been created."
+                        }
+                    )
+
+            else:
+                # Different response message for NULL data rather than showing
+                # literal 'None' value
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": "This would cause confusion but an unknown config preset has been created. Recommended to update and give it a proper name."
+                        }
+                    )
+
+
+        # Validation against 'details' field in payload
+        config_stored_details: tuple[UUID7, dict[str, dict[str, Any]]] | None = session.exec(
+            statement=select(
+                Configurations.id,
+                Configurations.details # pyright: ignore
+            )
+            .where(
+                # NOTE:
+                # Pydantic Docs have a very clear example which explain why I use
+                # this approach here:
+                # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
+                Configurations.details == config.details.model_dump(mode='json')
+            )
+        ).first()
+
+        if config_stored_details:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
                     "status": "409 - Conflict",
-                    "message": "A configuration with similar 'name' or 'details' column data already exists"
+                    "message": f"Exact '{config_stored_details[1]}' setting from one of the config preset has been found."
                     }
                 )
 
-        else:
-            config_db: Configurations = Configurations.model_validate(
-                obj=config,
-                strict=True
-            )
 
-            # NOTE:
-            # Very much similar reason as above
-            config_db.details = config_db.details.model_dump(mode='json') # pyright: ignore
+        # Only perform INSERT query if payload actually contains new data
+        config_db: Configurations = Configurations.model_validate(
+            obj=config,
+            strict=True
+        )
 
-            session.add(instance=config_db)
-            session.commit()
-            session.refresh(instance=config_db)
+        # NOTE:
+        # Very much similar reason as above
+        config_db.details = config_db.details.model_dump(mode='json') # pyright: ignore
 
-            return {
-                "success": True,
-                "created": config_db
-            }
+        session.add(instance=config_db)
+        session.commit()
+        session.refresh(instance=config_db)
+
+        return {
+            "success": True,
+            "created": config_db
+        }
 
 
     except TypeError as python_exc:
@@ -176,7 +211,7 @@ async def create_config_v1(
         # that would cause this's by performing ORM queries with non-standard
         # Python types (e.g., our custom `ConfigurationSchema` type). If anyone
         # would still want to test this (probably through an actual unit test
-        # file), feels free to comment out [Line 161] to see the effect.
+        # file), feels free to comment out [Line 196] to see the effect.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
