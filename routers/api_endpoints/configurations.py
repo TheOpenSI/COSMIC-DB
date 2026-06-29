@@ -4,7 +4,10 @@ from fastapi import (
     HTTPException,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    or_,
+    select
+)
 from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.expression import update
 
@@ -124,16 +127,73 @@ async def create_config_v1(
     session: SessionDependency
 ) -> Any:
     try:
+        # Validation against 'name' field in payload
+        config_stored_name: tuple[UUID7, str | None] | None = session.exec(
+            statement=select(
+                Configurations.id,
+                Configurations.name
+            )
+            .where(
+                Configurations.name == config.name
+            )
+        ).first()
+
+        if config_stored_name:
+            if config_stored_name[1] is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": f"'{config_stored_name[1]}' config preset has been created."
+                        }
+                    )
+
+            else:
+                # Different response message for NULL data rather than showing
+                # literal 'None' value
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": "This would cause confusion but an unknown config preset has been created. Recommended to update and give it a proper name."
+                        }
+                    )
+
+
+        # Validation against 'details' field in payload
+        config_stored_details: tuple[UUID7, dict[str, dict[str, Any]]] | None = session.exec(
+            statement=select(
+                Configurations.id,
+                Configurations.details # pyright: ignore
+            )
+            .where(
+                # NOTE:
+                # Pydantic Docs have a very clear example which explain why I use
+                # this approach here:
+                # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
+                Configurations.details == config.details.model_dump(mode='json')
+            )
+        ).first()
+
+        if config_stored_details:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "status": "409 - Conflict",
+                    "message": f"Exact '{config_stored_details[1]}' setting from one of the config preset has been found."
+                    }
+                )
+
+
+        # Only perform INSERT query if payload actually contains new data
+        config_db: Configurations = Configurations.model_validate(
+            obj=config,
+            strict=True
+        )
+
         # NOTE:
-        # `model_validate()` will keep non-standard Python types (e.g., custom
-        # classes, library types, etc). Therefore, we've to dump those into valid
-        # Python stdlib types so that it can be inserted/updated to the targeted
-        # db table. SQLModel (or any ORMs, really) only handle incoming data that
-        # have types match the convention for DB-specific system (with exception
-        # on some custom types that are a part of the built-in Python modules).
-        config_validate_data:   Configurations  = Configurations.model_validate(obj=config, strict=True)
-        config_compatible_data: dict[str, Any]  = config_validate_data.model_dump(mode="json", exclude_unset=True)
-        config_db:              Configurations  = Configurations(**config_compatible_data)
+        # Very much similar reason as above
+        config_db.details = config_db.details.model_dump(mode='json') # pyright: ignore
 
         session.add(instance=config_db)
         session.commit()
@@ -144,30 +204,19 @@ async def create_config_v1(
             "created": config_db
         }
 
-    except IntegrityError as psycopg_err:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "status": "409 - Conflict",
-                "message": f"{psycopg_err}"
-            }
-        )
 
-    except TypeError as python_err:
+    except TypeError as python_exc:
+        # NOTE:
+        # This one isn't likely to be catch that easy anymore since the only case
+        # that would cause this's by performing ORM queries with non-standard
+        # Python types (e.g., our custom `ConfigurationSchema` type). If anyone
+        # would still want to test this (probably through an actual unit test
+        # file), feels free to comment out [Line 196] to see the effect.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
-                "status": "500 - Type Error",
-                "message": f"{python_err}"
-            }
-        )
-
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
+                "status": "500 - Internal Server Error",
+                "message": f"{python_exc}"
             }
         )
 
