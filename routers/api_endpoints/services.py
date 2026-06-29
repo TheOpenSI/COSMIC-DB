@@ -13,7 +13,8 @@ from sqlmodel.sql.expression import SelectOfScalar
 from typing import (
     Annotated,
     Any,
-    Sequence
+    Sequence,
+    cast
 )
 from ...types.tags import APITag
 from pydantic.types import PositiveInt
