@@ -8,7 +8,7 @@ from sqlmodel import select
 
 
 ### Type hints ###
-from uuid import UUID
+from pydantic.types import UUID7
 from typing_extensions import Any, Sequence
 from ...types.tags import APITag
 
@@ -99,7 +99,7 @@ async def create_user_v1(
     response_model=UserPublicResponse
 )
 async def read_user_v1(
-    user_id: UUID,
+    user_id: UUID7,
     session: SessionDependency
 ) -> Any:
     user_view: Users | None = session.get(entity=Users, ident=user_id)
@@ -122,7 +122,7 @@ async def read_user_v1(
     response_model=UserUpdateResponse
 )
 async def update_user_v1(
-    user_id: UUID,
+    user_id: UUID7,
     user: UserUpdate,
     session: SessionDependency
 ) -> Any:
@@ -153,7 +153,7 @@ async def update_user_v1(
     response_model=UserDeleteResponse
 )
 async def delete_user_v1(
-    user_id: UUID,
+    user_id: UUID7,
     session: SessionDependency
 ) -> Any:
     user_gone: Users | None = session.get(entity=Users, ident=user_id)
