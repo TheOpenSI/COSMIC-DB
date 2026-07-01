@@ -223,7 +223,22 @@ async def update_service_v1(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
     response_model=ServiceDeleteResponse,
-    responses={**OPENAPI_DELETE_EXTRA_RESPONSES}
+    responses={
+        **OPENAPI_DELETE_EXTRA_RESPONSES,
+        403: {
+            "description": "Delete Active Service Denied",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "status": "403 - Forbidden",
+                            "message": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 )
 async def delete_service_v1(
     service_id: PositiveInt,
