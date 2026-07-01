@@ -12,7 +12,7 @@ from typing import Any
 LLM_ROLE: str = 'assistant'
 
 
-OPENAI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+OPENAPI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     404: {
         "description": "Requested Data Not Found",
         "content": {
@@ -28,8 +28,8 @@ OPENAI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     }
 }
 
-OPENAI_UPDATE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
-    **OPENAI_GET_EXTRA_RESPONSES,
+OPENAPI_UPDATE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **OPENAPI_GET_EXTRA_RESPONSES,
     409: {
         "description": "Foreign Key Integrity Constraint Error",
         "content": {
@@ -45,6 +45,6 @@ OPENAI_UPDATE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     }
 }
 
-OPENAI_DELETE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
-    **OPENAI_GET_EXTRA_RESPONSES
+OPENAPI_DELETE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **OPENAPI_GET_EXTRA_RESPONSES
 }
