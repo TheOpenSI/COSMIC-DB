@@ -13,7 +13,6 @@ from sqlalchemy.sql.expression import update
 
 
 ### Type hints ###
-from ...cores.db import SessionDependency
 from typing import (
     Any,
     Sequence
@@ -26,6 +25,12 @@ from sqlalchemy.sql.elements import ColumnElement
 
 
 ### Internal modules ###
+from ...cores.db import SessionDependency
+from ...cores.globals import (
+    OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_PATCH_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES
+)
 from ...apis.table_models.configurations import Configurations
 from ...apis.data_models.configurations import (
     # For validation (Data Model)
@@ -46,49 +51,6 @@ configs_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/configs",
     tags=[APITag.config]
 )
-
-
-config_additional_responses: dict[int | str, dict[str, Any]] = {
-    400: {
-        "description": "Value Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "400: Bad Request",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    409: {
-        "description": "Integrity Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "409: Conflict",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    500: {
-        "description": "Type/Response Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "500: Internal Server Error",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 @configs_v1_router.get(
@@ -119,8 +81,7 @@ async def read_configs_v1(
 @configs_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ConfigurationCreateResponse,
-    responses=config_additional_responses
+    response_model=ConfigurationCreateResponse
 )
 async def create_config_v1(
     config: ConfigurationCreate,
@@ -224,7 +185,8 @@ async def create_config_v1(
 @configs_v1_router.get(
     path="/{config_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ConfigurationPublicResponse
+    response_model=ConfigurationPublicResponse,
+    responses={**OPENAPI_GET_EXTRA_RESPONSES}
 )
 async def read_config_v1(
     config_id: UUID7,
@@ -248,7 +210,7 @@ async def read_config_v1(
     path="/{config_id}",
     status_code=status.HTTP_200_OK,
     response_model=ConfigurationUpdateResponse,
-    responses=config_additional_responses
+    responses={**OPENAPI_PATCH_EXTRA_RESPONSES}
 )
 async def update_config_v1(
     config_id: UUID7,
@@ -430,7 +392,8 @@ async def update_config_v1(
 @configs_v1_router.delete(
     path="/{config_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ConfigurationDeleteResponse
+    response_model=ConfigurationDeleteResponse,
+    responses={**OPENAPI_DELETE_EXTRA_RESPONSES}
 )
 async def delete_config_v1(
     config_id: UUID7,
