@@ -28,10 +28,9 @@ OPENAPI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     }
 }
 
-OPENAPI_PATCH_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
-    **OPENAPI_GET_EXTRA_RESPONSES,
+OPENAPI_POST_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     409: {
-        "description": "Foreign Key Integrity Constraint Error",
+        "description": "Foreign Key Integrity Constraint Error / Matching Data Found",
         "content": {
             "application/json": {
                 "example": {
@@ -43,6 +42,11 @@ OPENAPI_PATCH_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
             }
         }
     }
+}
+
+OPENAPI_PATCH_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **OPENAPI_GET_EXTRA_RESPONSES,
+    **OPENAPI_POST_EXTRA_RESPONSES
 }
 
 OPENAPI_DELETE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
