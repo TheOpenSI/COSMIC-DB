@@ -44,3 +44,7 @@ OPENAI_UPDATE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
         }
     }
 }
+
+OPENAI_DELETE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+    **OPENAI_GET_EXTRA_RESPONSES
+}
