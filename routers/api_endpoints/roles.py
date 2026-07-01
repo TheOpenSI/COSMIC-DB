@@ -15,6 +15,11 @@ from ...types.tags import APITag
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
+from ...cores.globals import (
+    OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_PATCH_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES
+)
 from ...apis.table_models.roles import Roles
 from ...apis.data_models.roles import (
     # For validation (Data Model)
@@ -96,7 +101,8 @@ async def create_role_v1(
 @roles_v1_router.get(
     path="/{role_id}",
     status_code=status.HTTP_200_OK,
-    response_model=RolePublicResponse
+    response_model=RolePublicResponse,
+    responses={**OPENAPI_GET_EXTRA_RESPONSES}
 )
 async def read_role_v1(
     role_id: UUID,
@@ -119,7 +125,8 @@ async def read_role_v1(
 @roles_v1_router.patch(
     path="/{role_id}",
     status_code=status.HTTP_200_OK,
-    response_model=RoleUpdateResponse
+    response_model=RoleUpdateResponse,
+    responses={**OPENAPI_PATCH_EXTRA_RESPONSES}
 )
 async def update_role_v1(
     role_id: UUID,
@@ -150,7 +157,8 @@ async def update_role_v1(
 @roles_v1_router.delete(
     path="/{role_id}",
     status_code=status.HTTP_200_OK,
-    response_model=RoleDeleteResponse
+    response_model=RoleDeleteResponse,
+    responses={**OPENAPI_DELETE_EXTRA_RESPONSES}
 )
 async def delete_role_v1(
     role_id: UUID,

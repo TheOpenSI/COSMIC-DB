@@ -28,7 +28,7 @@ OPENAPI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     }
 }
 
-OPENAPI_UPDATE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+OPENAPI_PATCH_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     **OPENAPI_GET_EXTRA_RESPONSES,
     409: {
         "description": "Foreign Key Integrity Constraint Error",
