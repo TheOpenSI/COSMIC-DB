@@ -15,6 +15,11 @@ from ...types.tags import APITag
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
+from ...cores.globals import (
+    OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_PATCH_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES
+)
 from ...apis.table_models.users import Users
 from ...apis.data_models.users import (
     # For validation (Data Model)
@@ -96,7 +101,8 @@ async def create_user_v1(
 @users_v1_router.get(
     path="/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserPublicResponse
+    response_model=UserPublicResponse,
+    responses={**OPENAPI_GET_EXTRA_RESPONSES}
 )
 async def read_user_v1(
     user_id: UUID,
@@ -119,7 +125,8 @@ async def read_user_v1(
 @users_v1_router.patch(
     path="/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserUpdateResponse
+    response_model=UserUpdateResponse,
+    responses={**OPENAPI_PATCH_EXTRA_RESPONSES}
 )
 async def update_user_v1(
     user_id: UUID,
@@ -150,7 +157,8 @@ async def update_user_v1(
 @users_v1_router.delete(
     path="/{user_id}",
     status_code=status.HTTP_200_OK,
-    response_model=UserDeleteResponse
+    response_model=UserDeleteResponse,
+    responses={**OPENAPI_DELETE_EXTRA_RESPONSES}
 )
 async def delete_user_v1(
     user_id: UUID,
