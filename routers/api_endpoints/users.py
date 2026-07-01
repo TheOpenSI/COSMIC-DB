@@ -17,6 +17,7 @@ from ...types.tags import APITag
 from ...cores.db import SessionDependency
 from ...cores.globals import (
     OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_POST_EXTRA_RESPONSES,
     OPENAPI_PATCH_EXTRA_RESPONSES,
     OPENAPI_DELETE_EXTRA_RESPONSES
 )
@@ -70,7 +71,8 @@ async def read_users_v1(
 @users_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=UserCreateResponse
+    response_model=UserCreateResponse,
+    responses={**OPENAPI_POST_EXTRA_RESPONSES}
 )
 async def create_user_v1(
     user: UserCreate,

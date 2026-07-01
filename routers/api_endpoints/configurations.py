@@ -28,6 +28,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from ...cores.db import SessionDependency
 from ...cores.globals import (
     OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_POST_EXTRA_RESPONSES,
     OPENAPI_PATCH_EXTRA_RESPONSES,
     OPENAPI_DELETE_EXTRA_RESPONSES
 )
@@ -81,7 +82,23 @@ async def read_configs_v1(
 @configs_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ConfigurationCreateResponse
+    response_model=ConfigurationCreateResponse,
+    responses={
+        **OPENAPI_POST_EXTRA_RESPONSES,
+        500: {
+            "description": "Custom Pydantic Type Uncoverted",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "status": "500 - Internal Server Error",
+                            "message": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 )
 async def create_config_v1(
     config: ConfigurationCreate,

@@ -27,6 +27,7 @@ from fastapi.exceptions import ResponseValidationError
 from ...cores.db import SessionDependency
 from ...cores.globals import (
     OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_POST_EXTRA_RESPONSES,
     OPENAPI_PATCH_EXTRA_RESPONSES,
     OPENAPI_DELETE_EXTRA_RESPONSES
 )
@@ -94,7 +95,8 @@ async def read_services_v1(
 @services_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ServiceCreateResponse
+    response_model=ServiceCreateResponse,
+    responses={**OPENAPI_POST_EXTRA_RESPONSES}
 )
 async def create_service_v1(
     service: ServiceCreate,

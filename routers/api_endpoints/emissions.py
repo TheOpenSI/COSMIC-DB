@@ -21,7 +21,10 @@ from sqlalchemy.exc import IntegrityError
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
-from ...cores.globals import OPENAPI_DELETE_EXTRA_RESPONSES
+from ...cores.globals import (
+    OPENAPI_POST_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES
+)
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
     # For validation (Data Model)
@@ -80,7 +83,8 @@ async def read_emissions_v1(
 @emissions_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=EmissionCreateResponse
+    response_model=EmissionCreateResponse,
+    responses={**OPENAPI_POST_EXTRA_RESPONSES}
 )
 async def create_emission_v1(
     emission: EmissionCreate,
