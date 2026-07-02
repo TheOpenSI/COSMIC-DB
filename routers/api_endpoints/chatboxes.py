@@ -155,7 +155,7 @@ async def create_chatbox_v1(
         # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
         chat_history_data: list[dict[str, Any]] = [
             chat_history.model_dump(mode='json')
-            for chat_history in chatbox.details
+            for chat_history in chatbox_db.details
         ]
 
 
