@@ -67,7 +67,7 @@ def upgrade() -> None:
             'name': 'memory',
             'desc': 'Update the vector database with a declarative sentence (not a question), or a PDF document.',
             'status': True,
-            'memory_capability': False,
+            'memory_capability': True,
             'create_on': datetime.now(tz=timezone.utc)
         },
         {
