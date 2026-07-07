@@ -63,6 +63,13 @@ services:
       - type: volume
         source: cosmic-postgres-data
         target: /var/lib/postgresql
+    ports:                                
+      - name: cosmic-postgres-pg
+        target: 5432
+        host_ip: 127.0.0.1
+        published: "5432"
+        protocol: tcp
+        mode: host
     networks:
         - cosmic-backend
 
