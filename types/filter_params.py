@@ -37,3 +37,16 @@ class EmissionFilterParams(SQLModel):
 
     user_id:        UUID7 | None = Field(default=None)
     emission_id:    UUID7 | None = Field(default=None)
+
+
+class EmissionsUserSummaryParams(SQLModel):
+    model_config = {"extra": "forbid"}
+
+    user_id: UUID7
+
+
+class EmissionsUserRollingParams(SQLModel):
+    model_config = {"extra": "forbid"}
+
+    user_id: UUID7
+    months: int = Field(default=3)
