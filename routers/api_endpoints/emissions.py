@@ -94,14 +94,6 @@ async def create_emission_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        # NOTE:
-        # Anyone might wonder why didn't we do any sort of creation validation
-        # logic here? Since this particular endpoint here is being used to create
-        # new Carbon emission data per user query, it's actually valid usecase to
-        # have duplicate data in the db. Why would it be? Because, well, SLMs can
-        # use the same amount of energy and effort to give users responses that
-        # would sound reasonable to their queries (whether it's exactly the same
-        # or not). Besides, users are **REDACTED** anyways :)
         emission_db: Emissions = Emissions.model_validate(
             obj=emission,
             strict=True
