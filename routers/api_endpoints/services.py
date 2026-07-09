@@ -148,41 +148,41 @@ async def create_service_v1(
     service: ServiceCreate,
     session: SessionDependency
 ) -> Any:
-        # Validation against 'name' field in payload
-        service_stored_name: tuple[int, str] | None = session.exec(
-            statement=select(
-                Services.id,
-                Services.name
-            )
-            .where(
-                Services.name == service.name
-            )
-        ).first()
-
-        if service_stored_name:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "status": "409 - Conflict",
-                    "message": f"'{service_stored_name[1]}' service has been created."
-                    }
-                )
-
-
-        # Only perform INSERT query if payload actually contains new data
-        service_db: Services = Services.model_validate(
-            obj=service,
-            strict=True
+    # Validation against 'name' field in payload
+    service_stored_name: tuple[int, str] | None = session.exec(
+        statement=select(
+            Services.id,
+            Services.name
         )
+        .where(
+            Services.name == service.name
+        )
+    ).first()
 
-        session.add(instance=service_db)
-        session.commit()
-        session.refresh(instance=service_db)
+    if service_stored_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": f"'{service_stored_name[1]}' service has been created."
+                }
+            )
 
-        return {
-            "success": True,
-            "created": service_db
-        }
+
+    # Only perform INSERT query if payload actually contains new data
+    service_db: Services = Services.model_validate(
+        obj=service,
+        strict=True
+    )
+
+    session.add(instance=service_db)
+    session.commit()
+    session.refresh(instance=service_db)
+
+    return {
+        "success": True,
+        "created": service_db
+    }
 
 
 @services_v1_router.get(
