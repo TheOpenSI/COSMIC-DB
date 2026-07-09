@@ -117,7 +117,7 @@ async def create_emission_v1(
         }
 
 
-    except IntegrityError as sqlalchemy_exc:
+    except IntegrityError as psycopg_err:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
