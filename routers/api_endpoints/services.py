@@ -5,7 +5,10 @@ from fastapi import (
     Query,
     status
 )
-from sqlmodel import select
+from sqlmodel import (
+    func,
+    select
+)
 
 
 ### Type hints ###
@@ -151,11 +154,16 @@ async def create_service_v1(
     # Validation against 'name' field in payload
     service_stored_name: tuple[int, str] | None = session.exec(
         statement=select(
-            Services.id,
+            Services.id, # pyright: ignore
             Services.name
         )
         .where(
-            Services.name == service.name
+            func.lower(
+                Services.name
+            ).like(
+                other=func.lower(service.name),
+                escape=None
+            )
         )
     ).first()
 
@@ -164,7 +172,7 @@ async def create_service_v1(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"'{service_stored_name[1]}' service has been created."
+                "message": f"'{service.name}' service has been created."
                 }
             )
 
