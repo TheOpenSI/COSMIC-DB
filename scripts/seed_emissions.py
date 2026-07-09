@@ -33,7 +33,8 @@ from psycopg import connect
 API_BASE_URL: str = "http://127.0.0.1:8000"
 USERS_ENDPOINT: str = f"{API_BASE_URL}/api/v1/users/"
 
-DB_HOST: str = "localhost"   # host machine, after port mapping 5432:5432
+# DB_HOST: str = "localhost"   # host machine, after port mapping 5432:5432
+DB_HOST: str = "database"   # host machine (USING Docker), after port mapping 5432:5432
 DB_PORT: int = 5432
 DB_NAME: str = "demo"
 DB_USER: str = "demo"
@@ -174,7 +175,7 @@ def build_fake_row(user_id: str, days_back: int) -> dict:
         "cpu_count": 10,
         "cpu_model": choice(CPU_MODELS),
         "gpu_count": 0,
-        "gpu_model": None,
+        "gpu_model": "Tested with no GPU",
         "longitude": round(uniform(-180.0, 180.0), 6),
         "latitude": round(uniform(-90.0, 90.0), 6),
         "ram_total_size": round(uniform(4.0, 16.0), 6),
