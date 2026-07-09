@@ -94,7 +94,7 @@ async def read_chatboxes_v1(
     responses={
         **OPENAPI_POST_EXTRA_RESPONSES,
         500: {
-            "description": "Custom Pydantic Type Uncoverted",
+            "description": "Custom Pydantic Type Unconverted",
             "content": {
                 "application/json": {
                     "example": {

@@ -29,6 +29,19 @@ OPENAPI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
 }
 
 OPENAPI_POST_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
+    400: {
+        "description": "Invalid Payload Received",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": {
+                        "status": "400 - Bad Request",
+                        "message": "string"
+                    }
+                }
+            }
+        }
+    },
     409: {
         "description": "Foreign Key Integrity Constraint Error / Matching Data Found",
         "content": {
