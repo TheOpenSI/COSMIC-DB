@@ -18,11 +18,14 @@ from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import extract, func
-from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
+from ...cores.globals import (
+    MONTH_LABELS,
+    get_rolling_year_months,
+)
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
     # For validation (Data Model)
@@ -38,34 +41,7 @@ from ...types.api_responses.emissions import (
     EmissionsUserRollingResponse,
 )
 from datetime import datetime, timezone
-from ...types.filter_params import (
-    EmissionFilterParams,
-    EmissionsUserSummaryParams,
-    EmissionsUserRollingParams,
-)
-
-
-MONTH_LABELS: list[str] = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-]
-
-
-def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:
-    """Return (year, month) with month in 1-12 after applying offset."""
-    index = (year * 12 + (month - 1)) + offset
-    return index // 12, (index % 12) + 1
-
-
-def _get_rolling_year_months(months: int) -> list[tuple[int, int]]:
-    now = datetime.now(tz=timezone.utc)
-    current_year = now.year
-    current_month = now.month
-
-    return [
-        _shift_month(current_year, current_month, offset - (months - 1))
-        for offset in range(months)
-    ]
+from ...types.filter_params import EmissionFilterParams
 
 
 emissions_v1_router: APIRouter = APIRouter(
@@ -161,21 +137,12 @@ async def create_emission_v1(
         )
 
 
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
-            }
-        )
-
 @emissions_v1_router.get(
-    path="/stats/monthly",
+    path="/stats",
     status_code=status.HTTP_200_OK,
     response_model=EmissionsMonthlyStatsResponse,
 )
-async def read_emissions_monthly_stats_v1(
+async def read_emissions_system_stats_v1(
     session: SessionDependency,
 ) -> Any:
     target_year = datetime.now(tz=timezone.utc).year
@@ -205,16 +172,13 @@ async def read_emissions_monthly_stats_v1(
 
 
 @emissions_v1_router.get(
-    path="/stats/summary",
+    path="/stats/{user_id}/summary",
     status_code=status.HTTP_200_OK,
     response_model=EmissionsUserSummaryResponse,
 )
 async def read_emissions_user_summary_v1(
+    user_id: UUID7,
     session: SessionDependency,
-    filter_query: Annotated[
-        EmissionsUserSummaryParams,
-        Query(title="User Emissions Summary", strict=True),
-    ],
 ) -> Any:
     statement = (
         select(
@@ -222,14 +186,14 @@ async def read_emissions_user_summary_v1(
             func.coalesce(func.sum(Emissions.cpu_power), 0).label("total_cpu_power"),
             func.coalesce(func.sum(Emissions.gpu_power), 0).label("total_gpu_power"),
         )
-        .where(Emissions.user_id == filter_query.user_id)
+        .where(Emissions.user_id == user_id)
     )
 
     row = session.exec(statement).one()
 
     return {
         "success": True,
-        "user_id": filter_query.user_id,
+        "user_id": user_id,
         "total_emissions": float(row.total_emissions),
         "total_cpu_power": float(row.total_cpu_power),
         "total_gpu_power": float(row.total_gpu_power),
@@ -237,24 +201,22 @@ async def read_emissions_user_summary_v1(
 
 
 @emissions_v1_router.get(
-    path="/stats/rolling",
+    path="/stats/{user_id}/rolling",
     status_code=status.HTTP_200_OK,
     response_model=EmissionsUserRollingResponse,
 )
 async def read_emissions_user_rolling_v1(
+    user_id: UUID7,
     session: SessionDependency,
-    filter_query: Annotated[
-        EmissionsUserRollingParams,
-        Query(title="User Emissions Rolling", strict=True),
-    ],
+    months: int = Query(default=3, ge=3, le=12),
 ) -> Any:
-    if filter_query.months not in (3, 6, 12):
+    if months not in (3, 6, 12):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="months must be 3, 6, or 12",
         )
 
-    year_months = _get_rolling_year_months(filter_query.months)
+    year_months = get_rolling_year_months(months)
     window_start = datetime(
         year_months[0][0],
         year_months[0][1],
@@ -268,7 +230,7 @@ async def read_emissions_user_rolling_v1(
             extract("month", Emissions.timestamp).label("month"),
             func.sum(Emissions.emissions).label("total"),
         )
-        .where(Emissions.user_id == filter_query.user_id)
+        .where(Emissions.user_id == user_id)
         .where(Emissions.timestamp >= window_start)
         .group_by(
             extract("year", Emissions.timestamp),
@@ -296,8 +258,8 @@ async def read_emissions_user_rolling_v1(
 
     return {
         "success": True,
-        "user_id": filter_query.user_id,
-        "months": filter_query.months,
+        "user_id": user_id,
+        "months": months,
         "labels": labels,
         "totals": totals,
     }
@@ -331,5 +293,3 @@ async def delete_emission_v1(
             "success": True,
             "deleted": emission_gone
         }
-
-
