@@ -1,6 +1,6 @@
 ### Core modules ###
 from pydantic import BaseModel
-from uuid import UUID
+from pydantic.types import UUID7
 
 
 ### Type hints ###
@@ -40,7 +40,7 @@ class EmissionsMonthlyStatsResponse(BaseModel):
 
 class EmissionsUserSummaryResponse(BaseModel):
     success: bool
-    user_id: UUID
+    user_id: UUID7
     total_emissions: float
     total_cpu_power: float
     total_gpu_power: float
@@ -48,8 +48,7 @@ class EmissionsUserSummaryResponse(BaseModel):
 
 class EmissionsUserRollingResponse(BaseModel):
     success: bool
-    user_id: UUID
+    user_id: UUID7
     months: int
     labels: list[str]
     totals: list[float | None]
-
