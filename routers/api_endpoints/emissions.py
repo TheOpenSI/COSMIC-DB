@@ -17,6 +17,7 @@ from typing_extensions import (
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import extract, func
 from fastapi.exceptions import ResponseValidationError
 
 
@@ -32,8 +33,10 @@ from ...types.api_responses.emissions import (
     # For client responses (Responses Model)
     EmissionsPublicResponse,
     EmissionsCreateResponse,
-    EmissionsDeleteResponse
+    EmissionsDeleteResponse,
+    EmissionsMonthlyStatsResponse
 )
+from datetime import datetime, timezone
 from ...types.filter_params_emissions import EmissionsFilterParams
 
 
@@ -139,6 +142,39 @@ async def create_emission_v1(
             }
         )
 
+@emissions_v1_router.get(
+    path="/stats/monthly",
+    status_code=status.HTTP_200_OK,
+    response_model=EmissionsMonthlyStatsResponse,
+)
+async def read_emissions_monthly_stats_v1(
+    session: SessionDependency,
+) -> Any:
+    target_year = datetime.now(tz=timezone.utc).year
+
+    statement = (
+        select(
+            extract("month", Emissions.timestamp).label("month"),
+            func.sum(Emissions.emissions).label("total"),
+        )
+        .where(extract("year", Emissions.timestamp) == target_year)
+        .group_by(extract("month", Emissions.timestamp))
+    )
+
+    rows = session.exec(statement).all()
+
+    # Build 12-slot array: index 0 = Jan, null if no rows for that month
+    monthly_totals: list[float | None] = [None] * 12
+    for row in rows:
+        month_index = int(row.month) - 1  # SQL month is 1–12
+        monthly_totals[month_index] = float(row.total)
+
+    return {
+        "success": True,
+        "year": target_year,
+        "monthly_totals": monthly_totals,
+    }
+
 
 @emissions_v1_router.delete(
     path="/{emission_id}",
@@ -168,3 +204,5 @@ async def delete_emission_v1(
             "success": True,
             "deleted": emission_gone
         }
+
+

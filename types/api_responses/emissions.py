@@ -30,3 +30,9 @@ class EmissionsCreateResponse(BaseModel):
 class EmissionsDeleteResponse(BaseModel):
     success:    bool
     deleted:    EmissionsDelete
+
+class EmissionsMonthlyStatsResponse(BaseModel):
+    success: bool
+    year: int
+    monthly_totals: list[float | None]  # exactly 12 values, index 0 = Jan
+
