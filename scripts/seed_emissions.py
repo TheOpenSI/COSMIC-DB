@@ -7,9 +7,10 @@ PostgreSQL via psycopg, bypassing the FastAPI layer entirely.
 This lets us backdate `timestamp` values (impossible through the API, since
 the Emissions table model auto-generates `timestamp = now()` server-side).
 
-Run from the COSMIC-DB project root (host machine, not inside container),
-after exposing Postgres on localhost:5432 in docker-compose.yml.
+Make sure you update the user IDs in REAL_USER_IDS to match real users in your database.
 
+Run from inside of the docker container to ensure all libraries are available.
+    docker exec -it cosmic-backend-fastapi /bin/bash
 Usage:
     uv run scripts/seed_emissions.py --rows 50 --users 2
     uv run scripts/seed_emissions.py --rows 300 --users 2 --days-back 60
@@ -33,7 +34,8 @@ from faker import Faker
 fake = Faker()
 
 # ── DB CONNECTION — matches docker/secrets/*.txt values ───────────────────
-DB_HOST: str = "localhost"   # host machine, after port mapping 5432:5432
+# DB_HOST: str = "localhost"   # host machine, after port mapping 5432:5432
+DB_HOST: str = "database" 
 DB_PORT: int = 5432
 DB_NAME: str = "demo"
 DB_USER: str = "demo"
@@ -65,8 +67,8 @@ BASE_LATITUDE: float = -33.8829
 # user_id has a FOREIGN KEY referencing users(id), so random fake UUIDs will
 # fail on insert. Emissions rows are juggled between these two real users.
 REAL_USER_IDS: list[str] = [
-    "019ef783-5bb2-7277-8bd5-15714570ceb6",  # cosmic
-    "019ef783-5bb2-7277-8bd5-1572d246ea55",  # test_user
+    "019f4555-ed47-7321-b5ec-43ddf58498f9",  # cosmic
+    "019f4555-ed47-7321-b5ec-43de0d32ba7c",  # test_user
 ]
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -160,7 +162,7 @@ def build_fake_row(user_id: str, days_back: int) -> dict:
         "cpu_count": 10,
         "cpu_model": random.choice(CPU_MODELS),
         "gpu_count": 0,
-        "gpu_model": None,
+        "gpu_model": "test",
         "longitude": round(BASE_LONGITUDE + random.uniform(-0.05, 0.05), 6),
         "latitude": round(BASE_LATITUDE + random.uniform(-0.05, 0.05), 6),
         "ram_total_size": 7.548999786376953,
