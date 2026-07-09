@@ -30,7 +30,7 @@ class EmissionCreateResponse(BaseModel):
 
 class EmissionDeleteResponse(BaseModel):
     success:    bool
-    deleted:    EmissionsDelete
+    deleted:    EmissionDelete
 
 class EmissionsMonthlyStatsResponse(BaseModel):
     success: bool
