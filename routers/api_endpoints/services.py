@@ -13,12 +13,10 @@ from sqlmodel.sql.expression import SelectOfScalar
 from typing import (
     Annotated,
     Any,
-    Sequence,
-    cast
+    Sequence
 )
 from ...types.tags import APITag
 from pydantic.types import PositiveInt
-
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
@@ -153,9 +151,7 @@ async def create_service_v1(
         # Validation against 'name' field in payload
         service_stored_name: tuple[int, str] | None = session.exec(
             statement=select(
-                # NOTE: 'None' type is for fitting FastAPI practices , not that
-                # this column accept NULL type
-                cast(int, Services.id),
+                Services.id,
                 Services.name
             )
             .where(
