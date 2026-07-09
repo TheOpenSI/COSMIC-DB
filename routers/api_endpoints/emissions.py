@@ -17,6 +17,8 @@ from typing_extensions import (
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import extract, func
+from fastapi.exceptions import ResponseValidationError
 
 
 ### Internal modules ###
@@ -29,12 +31,12 @@ from ...apis.data_models.emissions import (
 from ...types.api_responses.emissions import (
     # For client responses (Responses Model)
     EmissionsPublicResponse,
-    EmissionCreateResponse,
-    EmissionDeleteResponse
+    EmissionsCreateResponse,
+    EmissionsDeleteResponse,
+    EmissionsMonthlyStatsResponse
 )
-from ...types.filter_params import (
-    EmissionFilterParams
-)
+from datetime import datetime, timezone
+from ...types.filter_params_emissions import EmissionsFilterParams
 
 
 emissions_v1_router: APIRouter = APIRouter(
@@ -115,9 +117,62 @@ async def create_emission_v1(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"{sqlalchemy_exc}"
+                "message": f"{psycopg_err}"
             }
         )
+
+
+    except TypeError as python_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "500 - Type Error",
+                "message": f"{python_err}"
+            }
+        )
+
+
+    except ResponseValidationError as fastapi_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "500 - Response Validation Error",
+                "message": f"{fastapi_err}"
+            }
+        )
+
+@emissions_v1_router.get(
+    path="/stats/monthly",
+    status_code=status.HTTP_200_OK,
+    response_model=EmissionsMonthlyStatsResponse,
+)
+async def read_emissions_monthly_stats_v1(
+    session: SessionDependency,
+) -> Any:
+    target_year = datetime.now(tz=timezone.utc).year
+
+    statement = (
+        select(
+            extract("month", Emissions.timestamp).label("month"),
+            func.sum(Emissions.emissions).label("total"),
+        )
+        .where(extract("year", Emissions.timestamp) == target_year)
+        .group_by(extract("month", Emissions.timestamp))
+    )
+
+    rows = session.exec(statement).all()
+
+    # Build 12-slot array: index 0 = Jan, null if no rows for that month
+    monthly_totals: list[float | None] = [None] * 12
+    for row in rows:
+        month_index = int(row.month) - 1  # SQL month is 1–12
+        monthly_totals[month_index] = float(row.total)
+
+    return {
+        "success": True,
+        "year": target_year,
+        "monthly_totals": monthly_totals,
+    }
 
 
 @emissions_v1_router.delete(
@@ -148,3 +203,5 @@ async def delete_emission_v1(
             "success": True,
             "deleted": emission_gone
         }
+
+
