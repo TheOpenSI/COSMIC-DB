@@ -8,9 +8,8 @@ This lets us backdate `timestamp` values (impossible through POST /emissions,
 since the Emissions table model auto-generates `timestamp = now()` server-side).
 
 User IDs are fetched from GET /users so they stay valid after a fresh rebuild.
-
-Run from the COSMIC-DB project root (host machine, not inside container),
-after exposing Postgres on localhost:5432 and with the backend API running.
+Run from inside of the docker container to ensure all libraries are available.
+    docker exec -it cosmic-backend-fastapi /bin/bash
 
 Usage:
     uv run --group dev scripts/seed_emissions.py --rows 50 --users 2
