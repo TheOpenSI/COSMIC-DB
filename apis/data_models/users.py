@@ -3,8 +3,10 @@ from pydantic import ConfigDict
 
 
 ### Type hints ###
-from datetime import datetime
-from uuid import UUID
+from pydantic.types import (
+    UUID7,
+    AwareDatetime
+)
 from pydantic.networks import EmailStr
 
 
@@ -19,8 +21,8 @@ https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multipl
 """
 class UserPublic(UserBase):
     email:      EmailStr | None = None
-    id:         UUID
-    create_on:  datetime
+    id:         UUID7
+    create_on:  AwareDatetime
 
 
 class UserCreate(UserBase):
@@ -32,12 +34,12 @@ class UserCreate(UserBase):
 class UserUpdate(UserBase):
     model_config = ConfigDict(extra="forbid")   # pyright: ignore
 
-    role_id:    UUID | None     = None  # pyright: ignore
+    role_id:    UUID7 | None    = None   # pyright: ignore
     name:       str | None      = None   # pyright: ignore
     email:      EmailStr | None = None
 
 
 class UserDelete(UserBase):
     email:      EmailStr | None = None
-    id:         UUID
-    create_on:  datetime
+    id:         UUID7
+    create_on:  AwareDatetime
