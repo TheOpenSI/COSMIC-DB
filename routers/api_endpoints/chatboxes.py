@@ -526,15 +526,35 @@ async def update_chatbox_v1(
 
 
                         # Sub-case 1c - Scenario 3:
-                        # API exploits by passing in bulk chat history data
+                        # Append the new tail 
                         else:
-                            raise HTTPException(
-                                status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="{trig:s}: {cond:s}".format(
-                                    trig="Chatbox update forbidden",
-                                    cond=f"Incoming chat history size is/are much bigger than stored chat history size. Received size: {new_chat_history_size} > {old_chat_history_size}"
+                            role_name_validate: bool = await valid_role_name(chat_history_data=chatbox_details)
+
+                            if not role_name_validate:
+                                raise HTTPException(
+                                    status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail={
+                                        "status": "400 - Bad Request",
+                                        "message": "Invalid chat history data for updates!"
+                                    }
                                 )
-                            )
+
+                            else:
+                                for chat_history in chatbox_details[old_chat_history_size:]:
+                                    chatbox_stmt: Update = (
+                                        update(table=Chatboxes)
+                                        .where(Chatboxes.id == chatbox_session_id)  # pyright: ignore
+                                        .values({
+                                            Chatboxes.details: (                    # pyright: ignore
+                                                func.cast(Chatboxes.details, JSONB) # pyright: ignore
+                                            ).op("||")(
+                                                func.cast(chat_history, JSONB)      # pyright: ignore
+                                            )
+                                        })
+                                        .returning(Chatboxes)
+                                    )
+                                    session.exec(statement=chatbox_stmt)
+                                session.commit()
 
 
             # Case 2: partial data updates
@@ -854,16 +874,35 @@ async def update_chatbox_v1(
 
 
                                 # Sub-case 2c - Scenario 3:
-                                # API exploits by passing in bulk chat
-                                # history data
+                                # Append the new tail
                                 else:
-                                    raise HTTPException(
-                                        status_code=status.HTTP_400_BAD_REQUEST,
-                                        detail="{trig:s}: {cond:s}".format(
-                                            trig="Chatbox update forbidden",
-                                            cond=f"Incoming chat history size is/are much bigger than stored chat history size. Received size: {new_chat_history_size} > {old_chat_history_size}"
+                                    role_name_validate: bool = await valid_role_name(chat_history_data=chatbox_details)
+
+                                    if not role_name_validate:
+                                        raise HTTPException(
+                                            status_code=status.HTTP_400_BAD_REQUEST,
+                                            detail={
+                                                "status": "400 - Bad Request",
+                                                "message": "Invalid chat history data for updates!"
+                                            }
                                         )
-                                    )
+
+                                    else:
+                                        for chat_history in chatbox_details[old_chat_history_size:]:
+                                            chatbox_stmt: Update = (
+                                                update(table=Chatboxes)
+                                                .where(Chatboxes.id == chatbox_session_id)  # pyright: ignore
+                                                .values({
+                                                    Chatboxes.details: (                    # pyright: ignore
+                                                        func.cast(Chatboxes.details, JSONB) # pyright: ignore
+                                                    ).op("||")(
+                                                        func.cast(chat_history, JSONB)      # pyright: ignore
+                                                    )
+                                                })
+                                                .returning(Chatboxes)
+                                            )
+                                            session.exec(statement=chatbox_stmt)
+                                        session.commit()
 
 
             # Updated chatbox data can be:
