@@ -89,7 +89,33 @@ services:
         target: /var/lib/pgadmin
     networks:
         - cosmic-backend
-
+    
+  keycloak:
+    container_name: cosmic-keycloak
+    image: quay.io/keycloak/keycloak:26.0
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - type: bind
+        source: ./docker/keycloak/cosmic-realm.json
+        target: /opt/keycloak/data/import/cosmic-realm.json
+    ports:
+      - name: keycloak
+        target: 8080
+        host_ip: 127.0.0.1
+        published: "8080"
+        protocol: tcp
+        app_protocol: http
+        mode: host
+    networks:
+      - cosmic-backend
 
 volumes:
   # NOTE: as explained above, define this only in dev (delete on prod).
