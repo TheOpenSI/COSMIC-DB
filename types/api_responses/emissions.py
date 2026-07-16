@@ -1,5 +1,6 @@
 ### Core modules ###
 from pydantic import BaseModel
+from pydantic.types import UUID7
 
 
 ### Type hints ###
@@ -30,3 +31,24 @@ class EmissionCreateResponse(BaseModel):
 class EmissionDeleteResponse(BaseModel):
     success:    bool
     deleted:    EmissionDelete
+
+class EmissionsMonthlyStatsResponse(BaseModel):
+    success: bool
+    year: int
+    monthly_totals: list[float | None]  # exactly 12 values, index 0 = Jan
+
+
+class EmissionsUserSummaryResponse(BaseModel):
+    success: bool
+    user_id: UUID7
+    total_emissions: float
+    total_cpu_power: float
+    total_gpu_power: float
+
+
+class EmissionsUserRollingResponse(BaseModel):
+    success: bool
+    user_id: UUID7
+    months: int
+    labels: list[str]
+    totals: list[float | None]

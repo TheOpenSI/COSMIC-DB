@@ -17,6 +17,7 @@ from typing_extensions import (
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import extract, func
 
 
 ### Internal modules ###
@@ -24,6 +25,8 @@ from ...cores.db import SessionDependency
 from ...cores.globals import (
     OPENAPI_POST_EXTRA_RESPONSES,
     OPENAPI_DELETE_EXTRA_RESPONSES
+    MONTH_LABELS,
+    get_rolling_year_months,
 )
 from ...apis.table_models.emissions import Emissions
 from ...apis.data_models.emissions import (
@@ -34,11 +37,13 @@ from ...types.api_responses.emissions import (
     # For client responses (Responses Model)
     EmissionsPublicResponse,
     EmissionCreateResponse,
-    EmissionDeleteResponse
+    EmissionDeleteResponse,
+    EmissionsMonthlyStatsResponse,
+    EmissionsUserSummaryResponse,
+    EmissionsUserRollingResponse,
 )
-from ...types.filter_params import (
-    EmissionFilterParams
-)
+from datetime import datetime, timezone
+from ...types.filter_params import EmissionFilterParams
 
 
 emissions_v1_router: APIRouter = APIRouter(
@@ -91,14 +96,6 @@ async def create_emission_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        # NOTE:
-        # Anyone might wonder why didn't we do any sort of creation validation
-        # logic here? Since this particular endpoint here is being used to create
-        # new Carbon emission data per user query, it's actually valid usecase to
-        # have duplicate data in the db. Why would it be? Because, well, SLMs can
-        # use the same amount of energy and effort to give users responses that
-        # would sound reasonable to their queries (whether it's exactly the same
-        # or not). Besides, users are **REDACTED** anyways :)
         emission_db: Emissions = Emissions.model_validate(
             obj=emission,
             strict=True
@@ -114,14 +111,152 @@ async def create_emission_v1(
         }
 
 
-    except IntegrityError as sqlalchemy_exc:
+    except IntegrityError as psycopg_err:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"{sqlalchemy_exc}"
+                "message": f"{psycopg_err}"
             }
         )
+
+
+    except TypeError as python_err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "status": "500 - Type Error",
+                "message": f"{python_err}"
+            }
+        )
+
+
+@emissions_v1_router.get(
+    path="/stats",
+    status_code=status.HTTP_200_OK,
+    response_model=EmissionsMonthlyStatsResponse,
+)
+async def read_emissions_system_stats_v1(
+    session: SessionDependency,
+) -> Any:
+    target_year = datetime.now(tz=timezone.utc).year
+
+    statement = (
+        select(
+            extract("month", Emissions.timestamp).label("month"),
+            func.sum(Emissions.emissions).label("total"),
+        )
+        .where(extract("year", Emissions.timestamp) == target_year)
+        .group_by(extract("month", Emissions.timestamp))
+    )
+
+    rows = session.exec(statement).all()
+
+    # Build 12-slot array: index 0 = Jan, null if no rows for that month
+    monthly_totals: list[float | None] = [None] * 12
+    for row in rows:
+        month_index = int(row.month) - 1  # SQL month is 1–12
+        monthly_totals[month_index] = float(row.total)
+
+    return {
+        "success": True,
+        "year": target_year,
+        "monthly_totals": monthly_totals,
+    }
+
+
+@emissions_v1_router.get(
+    path="/stats/{user_id}/summary",
+    status_code=status.HTTP_200_OK,
+    response_model=EmissionsUserSummaryResponse,
+)
+async def read_emissions_user_summary_v1(
+    user_id: UUID7,
+    session: SessionDependency,
+) -> Any:
+    statement = (
+        select(
+            func.coalesce(func.sum(Emissions.emissions), 0).label("total_emissions"),
+            func.coalesce(func.sum(Emissions.cpu_power), 0).label("total_cpu_power"),
+            func.coalesce(func.sum(Emissions.gpu_power), 0).label("total_gpu_power"),
+        )
+        .where(Emissions.user_id == user_id)
+    )
+
+    row = session.exec(statement).one()
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "total_emissions": float(row.total_emissions),
+        "total_cpu_power": float(row.total_cpu_power),
+        "total_gpu_power": float(row.total_gpu_power),
+    }
+
+
+@emissions_v1_router.get(
+    path="/stats/{user_id}/rolling",
+    status_code=status.HTTP_200_OK,
+    response_model=EmissionsUserRollingResponse,
+)
+async def read_emissions_user_rolling_v1(
+    user_id: UUID7,
+    session: SessionDependency,
+    months: int = Query(default=3, ge=3, le=12),
+) -> Any:
+    if months not in (3, 6, 12):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="months must be 3, 6, or 12",
+        )
+
+    year_months = get_rolling_year_months(months)
+    window_start = datetime(
+        year_months[0][0],
+        year_months[0][1],
+        1,
+        tzinfo=timezone.utc,
+    )
+
+    statement = (
+        select(
+            extract("year", Emissions.timestamp).label("year"),
+            extract("month", Emissions.timestamp).label("month"),
+            func.sum(Emissions.emissions).label("total"),
+        )
+        .where(Emissions.user_id == user_id)
+        .where(Emissions.timestamp >= window_start)
+        .group_by(
+            extract("year", Emissions.timestamp),
+            extract("month", Emissions.timestamp),
+        )
+    )
+
+    rows = session.exec(statement).all()
+    totals_by_year_month = {
+        (int(row.year), int(row.month)): float(row.total)
+        for row in rows
+    }
+
+    spans_multiple_years = len({year for year, _ in year_months}) > 1
+    labels: list[str] = []
+    totals: list[float | None] = []
+
+    for year, month in year_months:
+        if spans_multiple_years:
+            labels.append(f"{MONTH_LABELS[month - 1]} '{str(year)[2:]}'")
+        else:
+            labels.append(MONTH_LABELS[month - 1])
+
+        totals.append(totals_by_year_month.get((year, month)))
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "months": months,
+        "labels": labels,
+        "totals": totals,
+    }
 
 
 @emissions_v1_router.delete(
