@@ -143,14 +143,21 @@ class ChatboxBase(SQLModel):
     )
 
 
-class EmissionsBase(SQLModel):
+class EmissionBase(SQLModel):
+    user_id: UUID = Field(
+        nullable=False,
+        sa_type=Uuid(
+            as_uuid=True,
+            native_uuid=True
+        ) # pyright: ignore
+    )
     run_id: UUID = Field(
         nullable=False,
         sa_type=Uuid(
             as_uuid=True,
             native_uuid=True
         ) # pyright: ignore
-    )   
+    )
     duration: float = Field(
         nullable=False
     )
@@ -187,7 +194,7 @@ class EmissionsBase(SQLModel):
     region: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -196,7 +203,7 @@ class EmissionsBase(SQLModel):
     cloud_provider: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -205,7 +212,7 @@ class EmissionsBase(SQLModel):
     cloud_region: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -214,7 +221,7 @@ class EmissionsBase(SQLModel):
     os: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -222,12 +229,12 @@ class EmissionsBase(SQLModel):
     )
     cpu_count: int | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     cpu_model: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -235,12 +242,12 @@ class EmissionsBase(SQLModel):
     )
     gpu_count: int | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     gpu_model: str | None = Field(
         default=None,
         max_length=255,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=255,
             collation=None
@@ -248,15 +255,15 @@ class EmissionsBase(SQLModel):
     )
     longitude: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     latitude: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     ram_total_size: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     tracking_mode: str | None = Field(
         default=None,
@@ -269,24 +276,24 @@ class EmissionsBase(SQLModel):
     )
     cpu_utilization_percent: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     gpu_utilization_percent: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     ram_utilization_percent: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     ram_used_gb: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     on_cloud: str | None = Field(
         default=None,
         max_length=1,
-        nullable=True,
+        nullable=False,
         sa_type=VARCHAR(
             length=1,
             collation=None
@@ -294,16 +301,9 @@ class EmissionsBase(SQLModel):
     )
     pue: float | None = Field(
         default=None,
-        nullable=True
+        nullable=False
     )
     wue: float | None = Field(
         default=None,
-        nullable=True
-    )
-    user_id: UUID = Field(
-        nullable=False,
-        sa_type=Uuid(
-            as_uuid=True,
-            native_uuid=True
-        ) # pyright: ignore
+        nullable=False
     )

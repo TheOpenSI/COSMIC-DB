@@ -8,7 +8,6 @@ from sqlmodel import select
 
 
 ### Type hints ###
-from uuid import UUID
 from pydantic.types import UUID7
 from typing import (
     Any,
@@ -118,7 +117,7 @@ async def create_role_v1(
     response_model=RolePublicResponse
 )
 async def read_role_v1(
-    role_id: UUID,
+    role_id: UUID7,
     session: SessionDependency
 ) -> Any:
     role_view: Roles | None = session.get(entity=Roles, ident=role_id)
@@ -141,7 +140,7 @@ async def read_role_v1(
     response_model=RoleUpdateResponse
 )
 async def update_role_v1(
-    role_id: UUID,
+    role_id: UUID7,
     role: RoleUpdate,
     session: SessionDependency
 ) -> Any:
@@ -172,7 +171,7 @@ async def update_role_v1(
     response_model=RoleDeleteResponse
 )
 async def delete_role_v1(
-    role_id: UUID,
+    role_id: UUID7,
     session: SessionDependency
 ) -> Any:
     role_gone: Roles | None = session.get(entity=Roles, ident=role_id)

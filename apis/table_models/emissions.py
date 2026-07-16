@@ -1,7 +1,5 @@
 ### Core modules ###
-from sqlmodel import (
-    Field,
-)
+from sqlmodel import Field
 from sqlalchemy.schema import (
     PrimaryKeyConstraint,
     ForeignKeyConstraint
@@ -9,8 +7,14 @@ from sqlalchemy.schema import (
 
 
 ### Type hints ###
-from datetime import datetime, timezone
-from uuid import UUID, uuid7
+from datetime import (
+    datetime,
+    timezone
+)
+from uuid import (
+    UUID,
+    uuid7
+)
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
     Uuid
@@ -18,7 +22,7 @@ from sqlalchemy.sql.sqltypes import (
 
 
 ### Internal modules ###
-from ..base_models import EmissionsBase
+from ..base_models import EmissionBase
 
 
 
@@ -26,7 +30,7 @@ from ..base_models import EmissionsBase
 To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
-class Emissions(EmissionsBase, table=True):
+class Emissions(EmissionBase, table=True):
     __tablename__: str = "emissions" # pyright: ignore
     __table_args__: tuple[
         PrimaryKeyConstraint,
@@ -45,7 +49,6 @@ class Emissions(EmissionsBase, table=True):
             match="FULL"
         )
     )
-
 
     id: UUID = Field(
         default_factory=(lambda: uuid7()),

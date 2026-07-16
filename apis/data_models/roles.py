@@ -3,8 +3,10 @@ from pydantic import ConfigDict
 
 
 ### Type hints ###
-from datetime import datetime
-from uuid import UUID
+from pydantic.types import (
+    UUID7,
+    AwareDatetime
+)
 
 
 ### Internal modules ###
@@ -17,8 +19,8 @@ To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
 class RolePublic(RoleBase):
-    id:         UUID
-    create_on:  datetime
+    id:         UUID7
+    create_on:  AwareDatetime
 
 
 class RoleCreate(RoleBase):
@@ -35,5 +37,5 @@ class RoleUpdate(RoleBase):
 
 
 class RoleDelete(RoleBase):
-    id:         UUID
-    create_on:  datetime
+    id:         UUID7
+    create_on:  AwareDatetime
