@@ -1,5 +1,6 @@
 ### Core modules ###
 from pydantic import BaseModel
+from pydantic.types import UUID7
 
 
 ### Type hints ###
@@ -7,8 +8,8 @@ from pydantic import BaseModel
 
 ### Internal modules ###
 from ...apis.data_models.emissions import (
-    EmissionsPublic,
-    EmissionsDelete
+    EmissionPublic,
+    EmissionDelete
 )
 
 
@@ -19,14 +20,35 @@ Client responses format according to FE requirements.
 class EmissionsPublicResponse(BaseModel):
     success:    bool
     count:      int
-    result:     list[EmissionsPublic]
+    result:     list[EmissionPublic]
 
 
-class EmissionsCreateResponse(BaseModel):
+class EmissionCreateResponse(BaseModel):
     success:    bool
-    created:    EmissionsPublic
+    created:    EmissionPublic
 
 
-class EmissionsDeleteResponse(BaseModel):
+class EmissionDeleteResponse(BaseModel):
     success:    bool
-    deleted:    EmissionsDelete
+    deleted:    EmissionDelete
+
+class EmissionsMonthlyStatsResponse(BaseModel):
+    success: bool
+    year: int
+    monthly_totals: list[float | None]  # exactly 12 values, index 0 = Jan
+
+
+class EmissionsUserSummaryResponse(BaseModel):
+    success: bool
+    user_id: UUID7
+    total_emissions: float
+    total_cpu_power: float
+    total_gpu_power: float
+
+
+class EmissionsUserRollingResponse(BaseModel):
+    success: bool
+    user_id: UUID7
+    months: int
+    labels: list[str]
+    totals: list[float | None]

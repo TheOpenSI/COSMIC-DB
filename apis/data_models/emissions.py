@@ -10,7 +10,7 @@ from pydantic.types import (
 
 
 ### Internal modules ###
-from ..base_models import EmissionsBase
+from ..base_models import EmissionBase
 
 
 
@@ -18,17 +18,17 @@ from ..base_models import EmissionsBase
 To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
-class EmissionsPublic(EmissionsBase):
+class EmissionPublic(EmissionBase):
     id:         UUID7
     timestamp:  AwareDatetime
 
 
-class EmissionsCreate(EmissionsBase):
+class EmissionCreate(EmissionBase):
     model_config = ConfigDict(extra="forbid") # pyright: ignore
 
     pass
 
 
-class EmissionsDelete(EmissionsBase):
+class EmissionDelete(EmissionBase):
     id:         UUID7
     timestamp:  AwareDatetime

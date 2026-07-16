@@ -87,15 +87,6 @@ services:
       - type: volume
         source: cosmic-pgadmin-data
         target: /var/lib/pgadmin
-    # NOTE: For quick debugging (on dev only)
-    ports:
-      - name: cosmic-pgadmin-gunicorn
-        target: 80
-        host_ip: 127.0.0.1
-        published: "5050"
-        protocol: tcp
-        app_protocol: http
-        mode: host
     networks:
         - cosmic-backend
 

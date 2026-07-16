@@ -32,7 +32,10 @@ async def lifespan(app: FastAPI):
     # Equivalent to 'shutdown' event
 
 
-cosmic_app: FastAPI = FastAPI(lifespan=lifespan)
+cosmic_app: FastAPI = FastAPI(
+    lifespan=lifespan,
+    title="CoSMIC Database API"
+)
 
 
 # NOTE: enable CORS on application level (only on dev)
