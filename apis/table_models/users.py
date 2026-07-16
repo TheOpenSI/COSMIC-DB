@@ -50,16 +50,14 @@ class Users(UserBase, table=True):
     __tablename__: str = "users" # pyright: ignore
     __table_args__: tuple[
         PrimaryKeyConstraint,
+        ForeignKeyConstraint,
         UniqueConstraint,
-        ForeignKeyConstraint
+        UniqueConstraint,
+        UniqueConstraint
     ] = (
         PrimaryKeyConstraint(
             "id",
             name="PK_USER_ID"
-        ),
-        UniqueConstraint(
-            "email",
-            name="UK_USER_EMAIL"
         ),
         ForeignKeyConstraint(
             columns=["role_id"],
@@ -68,7 +66,19 @@ class Users(UserBase, table=True):
             onupdate="CASCADE",
             ondelete="CASCADE",
             match="FULL"
-        )
+        ),
+        UniqueConstraint(
+            "role_id",
+            name="UK_USER_ROLE_ID"
+        ),
+        UniqueConstraint(
+            "name",
+            name="UK_USER_NAME"
+        ),
+        UniqueConstraint(
+            "email",
+            name="UK_USER_EMAIL"
+        ),
     )
 
     email: str | None = Field(
