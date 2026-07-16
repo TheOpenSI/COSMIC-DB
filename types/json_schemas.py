@@ -6,7 +6,10 @@ from pydantic import (
 
 
 ### Type hints ###
-from pydantic.types import AwareDatetime
+from pydantic.types import (
+    AwareDatetime,
+    PositiveInt
+)
 
 
 ### Internal modules ###
@@ -80,3 +83,5 @@ class ChatHistorySchema(BaseModel):
     llm_role:           str = LLM_ROLE  # NOTE: per agreed solution from our team
     llm_response:       str
     response_create_on: AwareDatetime
+    input_token:        PositiveInt # For final response received from `/cosmic (POST)` endpoint
+    output_token:       PositiveInt # For final response received from `/cosmic (POST)` endpoint

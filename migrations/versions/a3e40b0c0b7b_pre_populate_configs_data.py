@@ -1,4 +1,4 @@
-"""pre_populate_configs_data
+"""pre-populate configs data for Configurations table
 
 Revision ID: a3e40b0c0b7b
 Revises: 51a0ff6b910d

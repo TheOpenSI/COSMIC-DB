@@ -3,8 +3,10 @@ from pydantic import ConfigDict
 
 
 ### Type hints ###
-from datetime import datetime
-from pydantic.types import PositiveInt
+from pydantic.types import (
+    PositiveInt,
+    AwareDatetime
+)
 
 
 ### Internal modules ###
@@ -18,7 +20,7 @@ https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multipl
 """
 class ServicePublic(ServiceBase):
     id:         PositiveInt
-    create_on:  datetime
+    create_on:  AwareDatetime
 
 
 class ServiceCreate(ServiceBase):
@@ -38,4 +40,4 @@ class ServiceUpdate(ServiceBase):
 
 class ServiceDelete(ServiceBase):
     id:         PositiveInt
-    create_on:  datetime
+    create_on:  AwareDatetime

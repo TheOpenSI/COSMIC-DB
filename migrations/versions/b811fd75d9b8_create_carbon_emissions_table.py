@@ -1,4 +1,4 @@
-"""create carbon emissions table
+"""create Carbon Emissions table
 
 Revision ID: b811fd75d9b8
 Revises: a3e40b0c0b7b
@@ -6,7 +6,6 @@ Create Date: 2026-06-04 07:08:15.063380
 
 """
 from typing import Sequence, Union
-
 from alembic import op
 import sqlalchemy as sa
 
@@ -37,26 +36,26 @@ def upgrade() -> None:
         sa.Column('ram_energy', sa.Float(), autoincrement=False, nullable=False),
         sa.Column('energy_consumed', sa.Float(), autoincrement=False, nullable=False),
         sa.Column('water_consumed', sa.Float(), autoincrement=False, nullable=False),
-        sa.Column('region', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('cloud_provider', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('cloud_region', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('os', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('cpu_count', sa.Integer(), autoincrement=False, nullable=True),
-        sa.Column('cpu_model', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('gpu_count', sa.Integer(), autoincrement=False, nullable=True),
-        sa.Column('gpu_model', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=True),
-        sa.Column('longitude', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('latitude', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('ram_total_size', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('tracking_mode', sa.VARCHAR(length=50, collation=None), autoincrement=False, nullable=True),
-        sa.Column('cpu_utilization_percent', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('gpu_utilization_percent', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('ram_utilization_percent', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('ram_used_gb', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('on_cloud', sa.VARCHAR(length=1, collation=None), autoincrement=False, nullable=True),
-        sa.Column('pue', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('wue', sa.Float(), autoincrement=False, nullable=True),
-        sa.Column('user_id', sa.UUID(as_uuid=True), autoincrement=False, nullable=True),
+        sa.Column('region', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('cloud_provider', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('cloud_region', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('os', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('cpu_count', sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column('cpu_model', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('gpu_count', sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column('gpu_model', sa.VARCHAR(length=255, collation=None), autoincrement=False, nullable=False),
+        sa.Column('longitude', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('latitude', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('ram_total_size', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('tracking_mode', sa.VARCHAR(length=50, collation=None), autoincrement=False, nullable=False),
+        sa.Column('cpu_utilization_percent', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('gpu_utilization_percent', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('ram_utilization_percent', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('ram_used_gb', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('on_cloud', sa.VARCHAR(length=1, collation=None), autoincrement=False, nullable=False),
+        sa.Column('pue', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('wue', sa.Float(), autoincrement=False, nullable=False),
+        sa.Column('user_id', sa.UUID(as_uuid=True), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_EMISSIONS_ID')),
         sa.ForeignKeyConstraint(columns=['user_id'], refcolumns=['users.id'], name=op.f(name='FK_EMISSIONS_USER_ID'), onupdate='CASCADE', ondelete='CASCADE', match='FULL'),
         if_not_exists=True
