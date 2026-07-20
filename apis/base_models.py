@@ -47,6 +47,14 @@ class UserBase(SQLModel):
 
 
 class RoleBase(SQLModel):
+    name: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
     desc: str | None = Field(
         default=None,
         nullable=True,

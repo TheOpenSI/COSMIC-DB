@@ -10,14 +10,19 @@ from sqlalchemy.schema import (
 
 
 ### Type hints ###
-from datetime import datetime, timezone
+from datetime import (
+    datetime,
+    timezone
+)
 from uuid import UUID, uuid7
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
-    VARCHAR,
     Uuid
 )
-from typing import TYPE_CHECKING, Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional
+)
 
 
 ### Internal modules ###
@@ -51,14 +56,6 @@ class Roles(RoleBase, table=True):
         ),
     )
 
-    name: str = Field(
-        max_length=255,
-        nullable=False,
-        sa_type=VARCHAR(
-            length=255,
-            collation=None
-        ) # pyright: ignore
-    )
     id: UUID = Field(
         default_factory=(lambda: uuid7()),
         nullable=False,
