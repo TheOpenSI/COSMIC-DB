@@ -172,7 +172,7 @@ async def create_service_v1(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"'{service.name}' service has been created."
+                "message": f"'{service.name}' service with same name already exists."
                 }
             )
 
