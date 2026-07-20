@@ -19,7 +19,6 @@ To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
 class RolePublic(RoleBase):
-    name:       str
     id:         UUID7
     create_on:  AwareDatetime
 
@@ -38,6 +37,5 @@ class RoleUpdate(RoleBase):
 
 
 class RoleDelete(RoleBase):
-    name:       str
-    id:         UUID
-    create_on:  datetime
+    id:         UUID7
+    create_on:  AwareDatetime
