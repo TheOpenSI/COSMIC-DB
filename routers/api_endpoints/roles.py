@@ -75,41 +75,41 @@ async def create_role_v1(
     role: RoleCreate,
     session: SessionDependency
 ) -> Any:
-        # Validation against 'name' field in payload
-        role_stored_name: tuple[UUID7, str] | None = session.exec(
-            statement=select(
-                Roles.id,
-                Roles.name
-            )
-            .where(
-                Roles.name == role.name
-            )
-        ).first()
-
-        if role_stored_name:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={
-                    "status": "409 - Conflict",
-                    "message": f"'{role_stored_name[1]}' role has been created."
-                    }
-                )
-
-
-        # Only perform INSERT query if payload actually contains new data
-        role_db: Roles = Roles.model_validate(
-            obj=role,
-            strict=True
+    # Validation against 'name' field in payload
+    role_stored_name: tuple[UUID7, str] | None = session.exec(
+        statement=select(
+            Roles.id,
+            Roles.name
         )
+        .where(
+            Roles.name == role.name
+        )
+    ).first()
 
-        session.add(instance=role_db)
-        session.commit()
-        session.refresh(instance=role_db)
+    if role_stored_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": f"'{role_stored_name[1]}' role has been created."
+                }
+            )
 
-        return {
-            "success": True,
-            "created": role_db
-        }
+
+    # Only perform INSERT query if payload actually contains new data
+    role_db: Roles = Roles.model_validate(
+        obj=role,
+        strict=True
+    )
+
+    session.add(instance=role_db)
+    session.commit()
+    session.refresh(instance=role_db)
+
+    return {
+        "success": True,
+        "created": role_db
+    }
 
 
 @roles_v1_router.get(
