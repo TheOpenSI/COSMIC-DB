@@ -12,7 +12,6 @@ from sqlalchemy.sql.schema import (
 )
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
-    Boolean,
     SmallInteger
 )
 
