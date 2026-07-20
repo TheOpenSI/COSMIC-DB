@@ -90,7 +90,7 @@ async def create_role_v1(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"'{role_stored_name[1]}' role has been created."
+                "message": f"'{role_stored_name[1]}' already exists."
                 }
             )
 
