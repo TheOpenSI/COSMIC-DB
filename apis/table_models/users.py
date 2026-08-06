@@ -19,6 +19,7 @@ from sqlalchemy.sql.sqltypes import (
     Uuid
 )
 from typing import TYPE_CHECKING, Optional
+from .user_identities import UserIdentities
 
 
 ### Internal modules ###
@@ -96,6 +97,12 @@ class Users(UserBase, table=True):
         cascade_delete=True,
         passive_deletes=True
     )
+    identities: list["UserIdentities"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+        passive_deletes=True,
+    )
+
     # statistics: Optional["Statistics"] = Relationship(
     #     back_populates="users",
     #     cascade_delete=True,
