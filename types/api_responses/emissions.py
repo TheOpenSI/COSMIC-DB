@@ -41,23 +41,31 @@ class EmissionDeleteResponse(BaseModel):
     success:    bool
     deleted:    EmissionDelete
 
+
 class EmissionsMonthlyStatsResponse(BaseModel):
-    success: bool
-    year: int
-    monthly_totals: list[float | None]  # exactly 12 values, index 0 = Jan
+    model_config = ConfigDict(extra="forbid")
+
+    success:        bool
+    year:           int
+    # exactly 12 values, index 0 = Jan
+    monthly_totals: list[float | None]
 
 
 class EmissionsUserSummaryResponse(BaseModel):
-    success: bool
-    user_id: UUID7
-    total_emissions: float
-    total_cpu_power: float
-    total_gpu_power: float
+    model_config = ConfigDict(extra="forbid")
+
+    success:            bool
+    user_id:            UUID7
+    total_emissions:    float
+    total_cpu_power:    float
+    total_gpu_power:    float
 
 
 class EmissionsUserRollingResponse(BaseModel):
-    success: bool
-    user_id: UUID7
-    months: int
-    labels: list[str]
-    totals: list[float | None]
+    model_config = ConfigDict(extra="forbid")
+
+    success:            bool
+    user_id:            UUID7
+    months:             int
+    labels:             list[str]
+    totals:             list[float | None]
