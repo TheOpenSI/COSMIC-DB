@@ -1,7 +1,7 @@
+USER_ROLE:  str = 'user'
+LLM_ROLE:   str = 'assistant'
 from datetime import datetime, timezone
 
-
-LLM_ROLE: str = 'assistant'
 
 MONTH_LABELS: list[str] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
