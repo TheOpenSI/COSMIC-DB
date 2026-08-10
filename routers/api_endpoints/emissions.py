@@ -5,26 +5,33 @@ from fastapi import (
     Query,
     status
 )
-from sqlmodel import select
+from sqlalchemy.sql import (
+    select,
+    extract,
+    func
+)
+from datetime import (
+    datetime,
+    timezone
+)
 
 
 ### Type hints ###
 from typing_extensions import (
     Annotated,
-    Any,
-    Sequence
+    Any
 )
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import extract, func
+from ...types.filter_params import EmissionFilterParams
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
 from ...cores.globals import (
     OPENAPI_POST_EXTRA_RESPONSES,
-    OPENAPI_DELETE_EXTRA_RESPONSES
+    OPENAPI_DELETE_EXTRA_RESPONSES,
     MONTH_LABELS,
     get_rolling_year_months,
 )
@@ -42,8 +49,6 @@ from ...types.api_responses.emissions import (
     EmissionsUserSummaryResponse,
     EmissionsUserRollingResponse,
 )
-from datetime import datetime, timezone
-from ...types.filter_params import EmissionFilterParams
 
 
 emissions_v1_router: APIRouter = APIRouter(
