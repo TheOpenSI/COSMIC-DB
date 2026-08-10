@@ -92,13 +92,6 @@ def upgrade() -> None:
             'name': 'cosmic',
             'email': 'opensi@canberra.edu.au',
             'create_on': datetime.now(tz=timezone.utc)
-        },
-        {
-            'id': uuid7(),
-            'role_id': roles_id["user"],
-            'name': 'test_user',
-            'email': None,
-            'create_on': datetime.now(tz=timezone.utc)
         }
     ]
 

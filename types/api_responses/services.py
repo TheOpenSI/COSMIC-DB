@@ -1,5 +1,8 @@
 ### Core modules ###
-from sqlmodel import SQLModel
+from pydantic import (
+    BaseModel,
+    ConfigDict
+)
 
 
 ### Type hints ###
@@ -16,27 +19,37 @@ from ...apis.data_models.services import (
 """
 Client responses format according to FE requirements.
 """
-class ServicesPublicResponse(SQLModel):
+class ServicesPublicResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     count:      int
     result:     list[ServicePublic]
 
 
-class ServiceCreateResponse(SQLModel):
+class ServiceCreateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     created:    ServicePublic
 
 
-class ServicePublicResponse(SQLModel):
+class ServicePublicResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     result:     ServicePublic
 
 
-class ServiceUpdateResponse(SQLModel):
+class ServiceUpdateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     updated:    ServicePublic
 
 
-class ServiceDeleteResponse(SQLModel):
+class ServiceDeleteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     deleted:    ServiceDelete

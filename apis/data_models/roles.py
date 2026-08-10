@@ -19,7 +19,6 @@ To understand how this file structured, take a look at:
 https://fastapi.tiangolo.com/tutorial/sql-databases/#update-the-app-with-multiple-models
 """
 class RolePublic(RoleBase):
-    name:       str
     id:         UUID7
     create_on:  AwareDatetime
 
@@ -27,7 +26,7 @@ class RolePublic(RoleBase):
 class RoleCreate(RoleBase):
     model_config = ConfigDict(extra="forbid")   # pyright: ignore
 
-    name:       str
+    pass
 
 
 class RoleUpdate(RoleBase):
@@ -38,6 +37,5 @@ class RoleUpdate(RoleBase):
 
 
 class RoleDelete(RoleBase):
-    name:       str
     id:         UUID7
     create_on:  AwareDatetime

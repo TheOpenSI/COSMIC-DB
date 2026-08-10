@@ -1,4 +1,4 @@
-"""create_chatboxes_table
+"""create Chatboxes table
 
 Revision ID: 51a0ff6b910d
 Revises: 8e266617f204

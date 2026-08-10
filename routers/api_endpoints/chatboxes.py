@@ -25,7 +25,10 @@ from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import ResponseValidationError
 from sqlalchemy.sql.expression import Update
-from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
+from sqlalchemy.sql.elements import (
+    BinaryExpression,
+    ColumnElement
+)
 
 
 ### Internal modules ###
@@ -50,10 +53,8 @@ from ...types.api_responses.chatboxes import (
     ChatboxUpdateResponse,
     ChatboxDeleteResponse
 )
-from ...utils.roles import (
-    get_role_name,
-    valid_role_name
-)
+from ...utils.roles import valid_role_name
+
 
 
 chatboxes_v1_router: APIRouter = APIRouter(
@@ -114,29 +115,45 @@ async def create_chatbox_v1(
 ) -> Any:
     try:
         # NOTE:
-        # `model_validate()` will keep non-standard Python types (e.g., custom
-        # classes, library types, etc). Therefore, we've to dump those into valid
-        # Python stdlib types so that it can be inserted/updated to the targeted
-        # db table. SQLModel (or any ORMs, really) only handle incoming data that
-        # have types match the convention for DB-specific system (with exception
-        # on some custom types that are a part of the built-in Python modules).
-        chatbox_validate_data:      Chatboxes       = Chatboxes.model_validate(obj=chatbox, strict=True)
-        chatbox_compatible_data:    dict[str, Any]  = chatbox_validate_data.model_dump(mode="json", exclude_unset=True)
+        # Anyone might wonder why didn't we do any sort of creation validation
+        # logic here? Since this particular endpoint here is being used to create
+        # new chat session with (or without) a chat history, it's actually valid
+        # usecase to have duplicate chat session data in the db. Why would it be?
+        # Because, well, users are **REDACTED** :)
+        chatbox_db: Chatboxes = Chatboxes.model_validate(
+            obj=chatbox,
+            strict=True
+        )
 
-        # Make sure valid roles provided in chat history
-        role_name_validate: bool = await valid_role_name(chat_history_data=chatbox_compatible_data["details"])
+        # NOTE:
+        # Pydantic Docs have a very clear example which explain why I use this
+        # approach here. Our case is slightly different since we had a complex
+        # custom list class type, hence we need to normalise first so it becomes
+        # a normal Python list. Reference link below:
+        # https://pydantic.dev/docs/validation/latest/concepts/serialization#python-mode
+        chat_history_data: list[dict[str, Any]] = [
+            chat_history.model_dump(mode='json')
+            for chat_history in chatbox_db.details
+        ]
 
-        if not role_name_validate:
+
+        # Make sure `user_role` & `llm_role` field value matched our constant
+        # values
+        validate_role_name: bool = await valid_role_name(chat_history_data=chat_history_data)
+
+        if not validate_role_name:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={
                     "status": "400 - Bad Request",
-                    "message": "Invalid chat history format for create!"
+                    "message": "Invalid chat history data for creates!"
                 }
             )
 
         else:
-            chatbox_db: Chatboxes = Chatboxes(**chatbox_compatible_data)
+            # NOTE:
+            # Very much similar reason as above
+            chatbox_db.details = chat_history_data # pyright: ignore
 
             session.add(instance=chatbox_db)
             session.commit()
@@ -147,32 +164,29 @@ async def create_chatbox_v1(
                 "created": chatbox_db
             }
 
-    except IntegrityError as psycopg_err:
+
+    except IntegrityError as sqlalchemy_exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "status": "409 - Conflict",
-                "message": f"{psycopg_err}"
+                "message": f"{sqlalchemy_exc}"
             }
         )
 
 
-    except TypeError as python_err:
+    except TypeError as python_exc:
+        # NOTE:
+        # This one isn't likely to be catch that easy anymore since the only case
+        # that would cause this's by performing ORM queries with non-standard
+        # Python types (e.g., our custom `ChatHistorySchema` type). If anyone
+        # would still want to test this (probably through an actual unit test
+        # file), feels free to comment out [Line 178] to see the effect.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
-                "status": "500 - Type Error",
-                "message": f"{python_err}"
-            }
-        )
-
-
-    except ResponseValidationError as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "500 - Response Validation Error",
-                "message": f"{fastapi_err}"
+                "status": "500 - Internal Server Error",
+                "message": f"{python_exc}"
             }
         )
 
@@ -396,8 +410,6 @@ async def update_chatbox_v1(
                                 # This's a normal case where user modify chat convo at
                                 # any places any times during the chat session.
                                 else:
-                                    roles_name: list[str] = await get_role_name()
-
                                     new_chat_history:           dict[ColumnElement, Any]    = {}                    # pyright: ignore
                                     new_chat_history_target:    BinaryExpression[Any]       = Chatboxes.details     # pyright: ignore
                                     old_chat_history_target:    list[dict[str, Any]]        = chatbox_db.details    # pyright: ignore
@@ -413,8 +425,7 @@ async def update_chatbox_v1(
                                         # User role surgical updates
                                         chat_user_role: str = chat_history["user_role"]
 
-                                        if  (chat_user_role in roles_name) \
-                                        and (chat_user_role != old_chat_history_target[chat_history_idx]["user_role"]):
+                                        if chat_user_role != old_chat_history_target[chat_history_idx]["user_role"]:
                                             new_chat_history[new_chat_history_target[chat_history_idx]["user_role"]] = chat_user_role
 
 
@@ -422,8 +433,7 @@ async def update_chatbox_v1(
                                         # LLM role surgical updates
                                         chat_llm_role: str = chat_history["llm_role"]
 
-                                        if  (chat_llm_role in roles_name) \
-                                        and (chat_llm_role != old_chat_history_target[chat_history_idx]["llm_role"]):
+                                        if chat_llm_role != old_chat_history_target[chat_history_idx]["llm_role"]:
                                             new_chat_history[new_chat_history_target[chat_history_idx]["llm_role"]] = chat_llm_role
 
 
@@ -729,8 +739,6 @@ async def update_chatbox_v1(
                                         # This's a normal case where user modify chat convo at
                                         # any places any times during the chat session.
                                         else:
-                                            roles_name: list[str] = await get_role_name()
-
                                             new_chat_history:           dict[ColumnElement, Any]    = {}                    # pyright: ignore
                                             new_chat_history_target:    BinaryExpression[Any]       = Chatboxes.details     # pyright: ignore
                                             old_chat_history_target:    list[dict[str, Any]]        = chatbox_db.details    # pyright: ignore
@@ -746,8 +754,7 @@ async def update_chatbox_v1(
                                                 # User role surgical updates
                                                 chat_user_role: str = chat_history["user_role"]
 
-                                                if  (chat_user_role in roles_name) \
-                                                and (chat_user_role != old_chat_history_target[chat_history_idx]["user_role"]):
+                                                if chat_user_role != old_chat_history_target[chat_history_idx]["user_role"]:
                                                     new_chat_history[new_chat_history_target[chat_history_idx]["user_role"]] = chat_user_role
 
 
@@ -755,8 +762,7 @@ async def update_chatbox_v1(
                                                 # LLM role surgical updates
                                                 chat_llm_role: str = chat_history["llm_role"]
 
-                                                if  (chat_llm_role in roles_name) \
-                                                and (chat_llm_role != old_chat_history_target[chat_history_idx]["llm_role"]):
+                                                if chat_llm_role != old_chat_history_target[chat_history_idx]["llm_role"]:
                                                     new_chat_history[new_chat_history_target[chat_history_idx]["llm_role"]] = chat_llm_role
 
 

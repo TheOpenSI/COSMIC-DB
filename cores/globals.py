@@ -6,11 +6,12 @@ from typing import Any
 
 
 ### Internal modules ###
-
 from datetime import datetime, timezone
 
 
-LLM_ROLE: str = 'assistant'
+
+USER_ROLE:  str = 'user'
+LLM_ROLE:   str = 'assistant'
 
 
 OPENAPI_GET_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -66,6 +67,8 @@ OPENAPI_PATCH_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
 OPENAPI_DELETE_EXTRA_RESPONSES: dict[int | str, dict[str, Any]] = {
     **OPENAPI_GET_EXTRA_RESPONSES
 }
+
+
 MONTH_LABELS: list[str] = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",

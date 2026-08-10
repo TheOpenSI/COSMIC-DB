@@ -1,5 +1,8 @@
 ### Core modules ###
-from sqlmodel import SQLModel
+from pydantic import (
+    BaseModel,
+    ConfigDict
+)
 
 
 ### Type hints ###
@@ -16,27 +19,37 @@ from ...apis.data_models.roles import (
 """
 Client responses format according to FE requirements.
 """
-class RolesPublicResponse(SQLModel):
+class RolesPublicResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     count:      int
     result:     list[RolePublic]
 
 
-class RoleCreateResponse(SQLModel):
+class RoleCreateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     created:    RolePublic
 
 
-class RolePublicResponse(SQLModel):
+class RolePublicResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     result:     RolePublic
 
 
-class RoleUpdateResponse(SQLModel):
+class RoleUpdateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     updated:    RolePublic
 
 
-class RoleDeleteResponse(SQLModel):
+class RoleDeleteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     deleted:    RoleDelete

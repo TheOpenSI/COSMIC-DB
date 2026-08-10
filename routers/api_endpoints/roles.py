@@ -9,7 +9,10 @@ from sqlmodel import select
 
 ### Type hints ###
 from pydantic.types import UUID7
-from typing_extensions import Any, Sequence
+from typing import (
+    Any,
+    Sequence
+)
 from ...types.tags import APITag
 
 
@@ -78,26 +81,41 @@ async def create_role_v1(
     role: RoleCreate,
     session: SessionDependency
 ) -> Any:
-    try:
-        role_db: Roles = Roles.model_validate(obj=role, strict=True)
-
-        session.add(instance=role_db)
-        session.commit()
-        session.refresh(instance=role_db)
-
-        return {
-            "success": True,
-            "created": role_db
-        }
-
-    except Exception as fastapi_err:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "status": "Internal Server Error",
-                "message": str(object=fastapi_err)
-            }
+    # Validation against 'name' field in payload
+    role_stored_name: tuple[UUID7, str] | None = session.exec(
+        statement=select(
+            Roles.id,
+            Roles.name
         )
+        .where(
+            Roles.name == role.name
+        )
+    ).first()
+
+    if role_stored_name:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "status": "409 - Conflict",
+                "message": f"'{role_stored_name[1]}' already exists."
+                }
+            )
+
+
+    # Only perform INSERT query if payload actually contains new data
+    role_db: Roles = Roles.model_validate(
+        obj=role,
+        strict=True
+    )
+
+    session.add(instance=role_db)
+    session.commit()
+    session.refresh(instance=role_db)
+
+    return {
+        "success": True,
+        "created": role_db
+    }
 
 
 @roles_v1_router.get(
