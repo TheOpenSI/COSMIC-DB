@@ -47,6 +47,14 @@ class UserBase(SQLModel):
 
 
 class RoleBase(SQLModel):
+    name: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(
+            length=255,
+            collation=None
+        ) # pyright: ignore
+    )
     desc: str | None = Field(
         default=None,
         nullable=True,
@@ -298,4 +306,20 @@ class EmissionBase(SQLModel):
     wue: float | None = Field(
         default=None,
         nullable=False
+    )
+
+class UserIdentityBase(SQLModel):
+    user_id: UUID = Field(
+        nullable=False,
+        sa_type=Uuid(as_uuid=True, native_uuid=True),  # pyright: ignore
+    )
+    provider: str = Field(
+        max_length=50,
+        nullable=False,
+        sa_type=VARCHAR(length=50, collation=None),  # pyright: ignore
+    )
+    sub: str = Field(
+        max_length=255,
+        nullable=False,
+        sa_type=VARCHAR(length=255, collation=None),  # pyright: ignore
     )

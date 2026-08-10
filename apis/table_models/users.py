@@ -28,6 +28,7 @@ from typing import (
     TYPE_CHECKING,
     Optional
 )
+from .user_identities import UserIdentities
 
 
 ### Internal modules ###
@@ -111,6 +112,11 @@ class Users(UserBase, table=True):
         back_populates="user"
     )
     chatboxes: list["Chatboxes"] = Relationship(
+        back_populates="user",
+        cascade_delete=True,
+        passive_deletes=True
+    )
+    identities: list["UserIdentities"] = Relationship(
         back_populates="user",
         cascade_delete=True,
         passive_deletes=True
