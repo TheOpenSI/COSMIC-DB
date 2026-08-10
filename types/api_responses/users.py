@@ -1,5 +1,8 @@
 ### Core modules ###
-from sqlmodel import SQLModel
+from pydantic import (
+    BaseModel,
+    ConfigDict
+)
 
 
 ### Type hints ###
@@ -16,27 +19,37 @@ from ...apis.data_models.users import (
 """
 Client responses format according to FE requirements.
 """
-class UsersPublicResponse(SQLModel):
+class UsersPublicResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     count:      int
     result:     list[UserPublic]
 
 
-class UserCreateResponse(SQLModel):
+class UserCreateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     created:    UserPublic
 
 
-class UserPublicResponse(SQLModel):
+class UserPublicResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     result:     UserPublic
 
 
-class UserUpdateResponse(SQLModel):
+class UserUpdateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     updated:    UserPublic
 
 
-class UserDeleteResponse(SQLModel):
+class UserDeleteResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     success:    bool
     deleted:    UserDelete
