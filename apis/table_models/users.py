@@ -24,10 +24,7 @@ from sqlalchemy.sql.sqltypes import (
     VARCHAR,
     Uuid
 )
-from typing import (
-    TYPE_CHECKING,
-    Optional
-)
+from typing import TYPE_CHECKING
 from .user_identities import UserIdentities
 
 
@@ -52,7 +49,6 @@ class Users(UserBase, table=True):
     __table_args__: tuple[
         PrimaryKeyConstraint,
         ForeignKeyConstraint,
-        # UniqueConstraint,
         UniqueConstraint,
         UniqueConstraint
     ] = (
@@ -68,10 +64,6 @@ class Users(UserBase, table=True):
             ondelete="CASCADE",
             match="FULL"
         ),
-        # UniqueConstraint(
-        #     "role_id",
-        #     name="UK_USER_ROLE_ID"
-        # ),
         UniqueConstraint(
             "name",
             name="UK_USER_NAME"
@@ -108,7 +100,7 @@ class Users(UserBase, table=True):
     """
     https://sqlmodel.tiangolo.com/tutorial/relationship-attributes/
     """
-    role: Optional["Roles"] = Relationship(
+    role: list["Roles"] = Relationship(
         back_populates="user"
     )
     chatboxes: list["Chatboxes"] = Relationship(
