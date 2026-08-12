@@ -52,7 +52,7 @@ class Users(UserBase, table=True):
     __table_args__: tuple[
         PrimaryKeyConstraint,
         ForeignKeyConstraint,
-        UniqueConstraint,
+        # UniqueConstraint,
         UniqueConstraint,
         UniqueConstraint
     ] = (
@@ -68,10 +68,10 @@ class Users(UserBase, table=True):
             ondelete="CASCADE",
             match="FULL"
         ),
-        UniqueConstraint(
-            "role_id",
-            name="UK_USER_ROLE_ID"
-        ),
+        # UniqueConstraint(
+        #     "role_id",
+        #     name="UK_USER_ROLE_ID"
+        # ),
         UniqueConstraint(
             "name",
             name="UK_USER_NAME"
