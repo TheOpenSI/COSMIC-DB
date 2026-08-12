@@ -11,14 +11,20 @@ from sqlalchemy.schema import (
 
 
 ### Type hints ###
-from datetime import datetime, timezone
-from uuid import UUID, uuid7
+from datetime import (
+    datetime,
+    timezone
+)
+from uuid import (
+    UUID,
+    uuid7
+)
 from sqlalchemy.sql.sqltypes import (
     TIMESTAMP,
     VARCHAR,
     Uuid
 )
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from .user_identities import UserIdentities
 
 
@@ -42,16 +48,13 @@ class Users(UserBase, table=True):
     __tablename__: str = "users" # pyright: ignore
     __table_args__: tuple[
         PrimaryKeyConstraint,
+        ForeignKeyConstraint,
         UniqueConstraint,
-        ForeignKeyConstraint
+        UniqueConstraint
     ] = (
         PrimaryKeyConstraint(
             "id",
             name="PK_USER_ID"
-        ),
-        UniqueConstraint(
-            "email",
-            name="UK_USER_EMAIL"
         ),
         ForeignKeyConstraint(
             columns=["role_id"],
@@ -60,7 +63,15 @@ class Users(UserBase, table=True):
             onupdate="CASCADE",
             ondelete="CASCADE",
             match="FULL"
-        )
+        ),
+        UniqueConstraint(
+            "name",
+            name="UK_USER_NAME"
+        ),
+        UniqueConstraint(
+            "email",
+            name="UK_USER_EMAIL"
+        ),
     )
 
     email: str | None = Field(
@@ -89,7 +100,7 @@ class Users(UserBase, table=True):
     """
     https://sqlmodel.tiangolo.com/tutorial/relationship-attributes/
     """
-    role: Optional["Roles"] = Relationship(
+    role: list["Roles"] = Relationship(
         back_populates="user"
     )
     chatboxes: list["Chatboxes"] = Relationship(
@@ -100,11 +111,5 @@ class Users(UserBase, table=True):
     identities: list["UserIdentities"] = Relationship(
         back_populates="user",
         cascade_delete=True,
-        passive_deletes=True,
+        passive_deletes=True
     )
-
-    # statistics: Optional["Statistics"] = Relationship(
-    #     back_populates="users",
-    #     cascade_delete=True,
-    #     passive_deletes=True
-    # )

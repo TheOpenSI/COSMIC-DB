@@ -1,4 +1,4 @@
-"""pre_populate_users_data
+"""pre-populate users data for Users table
 
 Revision ID: 96121362751e
 Revises: 8a419f2d7d9d
@@ -8,8 +8,6 @@ Create Date: 2026-04-07 18:40:42.124555
 from datetime import datetime, timezone
 from typing import Sequence, Union
 from uuid import UUID, uuid7
-from sqlalchemy.orm.session import Session
-
 from alembic import op
 import sqlalchemy as sa
 
@@ -33,7 +31,7 @@ def upgrade() -> None:
         sa.Column('create_on', sa.TIMESTAMP(timezone=True), autoincrement=False, nullable=False),
         sa.PrimaryKeyConstraint('id', name=op.f(name='PK_USER_ID')),
         sa.ForeignKeyConstraint(['role_id'], ['roles.id'], name=op.f('FK_USER_ROLE_ID'), onupdate='CASCADE', ondelete='CASCADE', match='FULL'),
-        sa.UniqueConstraint('email', name=op.f(name='UK_ROLE_USER_ID'), postgresql_include=[], postgresql_nulls_not_distinct=False),
+        sa.UniqueConstraint('name', name=op.f(name='UK_USER_NAME'), postgresql_include=[], postgresql_nulls_not_distinct=False),
         sa.UniqueConstraint('email', name=op.f(name='UK_USER_EMAIL'), postgresql_include=[], postgresql_nulls_not_distinct=False),
         if_not_exists=True
     )

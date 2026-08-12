@@ -1,4 +1,5 @@
 ### Core modules ###
+import re
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -9,8 +10,12 @@ from sqlmodel import select
 
 ### Type hints ###
 from pydantic.types import UUID7
-from typing_extensions import Any, Sequence
+from typing import (
+    Any,
+    Sequence
+)
 from ...types.tags import APITag
+from sqlalchemy.exc import IntegrityError
 
 
 ### Internal modules ###
@@ -72,7 +77,90 @@ async def create_user_v1(
     session: SessionDependency
 ) -> Any:
     try:
-        user_db: Users = Users.model_validate(obj=user, strict=True)
+        # Validation against 'name' field in payload
+        user_stored_name: tuple[UUID7, str] | None = session.exec(
+            statement=select(
+                Users.id,
+                Users.name
+            )
+            .where(
+                Users.name == user.name
+            )
+        ).first()
+
+        if user_stored_name:
+            # NOTE:
+            # We tried to utilise what 're' offered by default so it looks quite
+            # special than a normal RegEx. The original form (assume using `/` as
+            # default delims) is:
+            #                           "/test|demo/gmix"
+            if not re.findall(
+                pattern=r"test|demo",
+                string=user_stored_name[1],
+                flags=(
+                    re.IGNORECASE   |
+                    re.MULTILINE    |
+                    re.VERBOSE
+                )
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": f"An user with '{user_stored_name[1]}' name has been taken."
+                        }
+                    )
+
+            else:
+                # Different response message for these special users since it can
+                # only be created by us admins for testing purposes
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": "A test/demo user has been created. Feels free to use it directly."
+                        }
+                    )
+
+
+        # Validation against 'email' field in payload
+        user_stored_email: tuple[UUID7, str | None] | None = session.exec(
+            statement=select(
+                Users.id,
+                Users.email
+            )
+            .where(
+                Users.email == user.email
+            )
+        ).first()
+
+        if user_stored_email:
+            if user_stored_email[1] is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": f"An user with '{user_stored_email[1]}' email has been registered."
+                        }
+                    )
+
+            else:
+                # Different response message for NULL data rather than showing
+                # literal 'None' value
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "status": "409 - Conflict",
+                        "message": "A test/demo user has been created. Feels free to use it directly."
+                        }
+                    )
+
+
+        # Only perform INSERT query if payload actually contains new data
+        user_db: Users = Users.model_validate(
+            obj=user,
+            strict=True
+        )
 
         session.add(instance=user_db)
         session.commit()
@@ -83,12 +171,13 @@ async def create_user_v1(
             "created": user_db
         }
 
-    except Exception as fastapi_err:
+
+    except IntegrityError as sqlalchemy_exc:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status.HTTP_409_CONFLICT,
             detail={
-                "status": "Internal Server Error",
-                "message": fastapi_err
+                "status": "409 - Conflict",
+                "message": f"{sqlalchemy_exc}"
             }
         )
 

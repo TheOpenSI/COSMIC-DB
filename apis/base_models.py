@@ -15,7 +15,7 @@ from sqlalchemy.sql.sqltypes import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from ..types.json_schemas import (
-    ChatHistorySchema, 
+    ChatHistorySchema,
     ConfigurationSchema
 )
 
