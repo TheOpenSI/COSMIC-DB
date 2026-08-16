@@ -16,7 +16,6 @@ from sqlmodel import select
 
 
 ### Type hints ###
-from ...cores.db import SessionDependency
 from typing import (
     Any,
     Sequence
@@ -33,6 +32,13 @@ from sqlalchemy.sql.elements import (
 
 
 ### Internal modules ###
+from ...cores.db import SessionDependency
+from ...cores.globals import (
+    OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_POST_EXTRA_RESPONSES,
+    OPENAPI_PATCH_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES
+)
 from ...apis.table_models.chatboxes import Chatboxes
 from ...apis.data_models.chatboxes import (
     # For validation (Data Model)
@@ -55,49 +61,6 @@ chatboxes_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/chatboxes",
     tags=[APITag.chatbox]
 )
-
-
-chatbox_additional_responses: dict[int | str, dict[str, Any]] = {
-    400: {
-        "description": "Value Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "400: Bad Request",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    409: {
-        "description": "Integrity Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "409: Conflict",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    500: {
-        "description": "Type/Response Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "500: Internal Server Error",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 @chatboxes_v1_router.get(
@@ -129,7 +92,22 @@ async def read_chatboxes_v1(
     path="/",
     status_code=status.HTTP_201_CREATED,
     response_model=ChatboxCreateResponse,
-    responses=chatbox_additional_responses
+    responses={
+        **OPENAPI_POST_EXTRA_RESPONSES,
+        500: {
+            "description": "Custom Pydantic Type Unconverted",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "status": "500 - Internal Server Error",
+                            "message": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 )
 async def create_chatbox_v1(
     chatbox: ChatboxCreate,
@@ -216,7 +194,8 @@ async def create_chatbox_v1(
 @chatboxes_v1_router.get(
     path="/{chatbox_session_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ChatboxPublicResponse
+    response_model=ChatboxPublicResponse,
+    responses={**OPENAPI_GET_EXTRA_RESPONSES}
 )
 async def read_chatbox_v1(
     chatbox_session_id: UUID7,
@@ -240,7 +219,7 @@ async def read_chatbox_v1(
     path="/{chatbox_session_id}",
     status_code=status.HTTP_200_OK,
     response_model=ChatboxUpdateResponse,
-    responses=chatbox_additional_responses
+    responses={**OPENAPI_PATCH_EXTRA_RESPONSES}
 )
 async def update_chatbox_v1(
     chatbox_session_id: UUID7,
@@ -957,7 +936,8 @@ async def update_chatbox_v1(
 @chatboxes_v1_router.delete(
     path="/{chatbox_session_id}",
     status_code=status.HTTP_200_OK,
-    response_model=ChatboxDeleteResponse
+    response_model=ChatboxDeleteResponse,
+    responses={**OPENAPI_DELETE_EXTRA_RESPONSES}
 )
 async def delete_chatbox_v1(
     chatbox_session_id: UUID7,

@@ -5,24 +5,33 @@ from fastapi import (
     Query,
     status
 )
-from sqlmodel import select
+from sqlalchemy.sql import (
+    select,
+    extract,
+    func
+)
+from datetime import (
+    datetime,
+    timezone
+)
 
 
 ### Type hints ###
 from typing_extensions import (
     Annotated,
-    Any,
-    Sequence
+    Any
 )
 from ...types.tags import APITag
 from pydantic.types import UUID7
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import extract, func
+from ...types.filter_params import EmissionFilterParams
 
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
 from ...cores.globals import (
+    OPENAPI_POST_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES,
     MONTH_LABELS,
     get_rolling_year_months,
 )
@@ -40,15 +49,12 @@ from ...types.api_responses.emissions import (
     EmissionsUserSummaryResponse,
     EmissionsUserRollingResponse,
 )
-from datetime import datetime, timezone
-from ...types.filter_params import EmissionFilterParams
 
 
 emissions_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/emissions",
     tags=[APITag.emission]
 )
-
 
 
 @emissions_v1_router.get(
@@ -87,7 +93,8 @@ async def read_emissions_v1(
 @emissions_v1_router.post(
     path="/",
     status_code=status.HTTP_201_CREATED,
-    response_model=EmissionCreateResponse
+    response_model=EmissionCreateResponse,
+    responses={**OPENAPI_POST_EXTRA_RESPONSES}
 )
 async def create_emission_v1(
     emission: EmissionCreate,
@@ -260,7 +267,8 @@ async def read_emissions_user_rolling_v1(
 @emissions_v1_router.delete(
     path="/{emission_id}",
     status_code=status.HTTP_200_OK,
-    response_model=EmissionDeleteResponse
+    response_model=EmissionDeleteResponse,
+    responses={**OPENAPI_DELETE_EXTRA_RESPONSES}
 )
 async def delete_emission_v1(
     emission_id: UUID7,

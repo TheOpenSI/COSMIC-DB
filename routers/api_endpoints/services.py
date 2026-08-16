@@ -23,6 +23,12 @@ from pydantic.types import PositiveInt
 
 ### Internal modules ###
 from ...cores.db import SessionDependency
+from ...cores.globals import (
+    OPENAPI_GET_EXTRA_RESPONSES,
+    OPENAPI_POST_EXTRA_RESPONSES,
+    OPENAPI_PATCH_EXTRA_RESPONSES,
+    OPENAPI_DELETE_EXTRA_RESPONSES
+)
 from ...apis.table_models.services import Services
 from ...apis.data_models.services import (
     # For validation (Data Model)
@@ -42,67 +48,10 @@ from ...types.filter_params import (
 )
 
 
-
 services_v1_router: APIRouter = APIRouter(
     prefix="/api/v1/services",
     tags=[APITag.service]
 )
-
-
-service_additional_responses: dict[int | str, dict[str, Any]] = {
-    403: {
-        "description": "Active Service Deletion Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "403 - Forbidden",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    404: {
-        "description": "Non Exist Data Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "404 - Not Found",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    409: {
-        "description": "Integrity Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "409 - Conflict",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    },
-    422: {
-        "description": "Validation Error",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": {
-                        "status": "422 - Unprocessable Content",
-                        "message": "string"
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 @services_v1_router.get(
@@ -145,7 +94,7 @@ async def read_services_v1(
     path="/",
     status_code=status.HTTP_201_CREATED,
     response_model=ServiceCreateResponse,
-    responses=service_additional_responses
+    responses={**OPENAPI_POST_EXTRA_RESPONSES}
 )
 async def create_service_v1(
     service: ServiceCreate,
@@ -197,7 +146,7 @@ async def create_service_v1(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
     response_model=ServicePublicResponse,
-    responses=service_additional_responses
+    responses={**OPENAPI_GET_EXTRA_RESPONSES}
 )
 async def read_service_v1(
     service_id: PositiveInt,
@@ -222,7 +171,7 @@ async def read_service_v1(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
     response_model=ServiceUpdateResponse,
-    responses=service_additional_responses
+    responses={**OPENAPI_PATCH_EXTRA_RESPONSES}
 )
 async def update_service_v1(
     service_id: PositiveInt,
@@ -270,7 +219,22 @@ async def update_service_v1(
     path="/{service_id}",
     status_code=status.HTTP_200_OK,
     response_model=ServiceDeleteResponse,
-    responses=service_additional_responses
+    responses={
+        **OPENAPI_DELETE_EXTRA_RESPONSES,
+        403: {
+            "description": "Delete Active Service Denied",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "status": "403 - Forbidden",
+                            "message": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 )
 async def delete_service_v1(
     service_id: PositiveInt,
